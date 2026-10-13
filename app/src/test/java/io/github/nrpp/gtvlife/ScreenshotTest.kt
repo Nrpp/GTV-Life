@@ -55,6 +55,18 @@ class ScreenshotTest {
                 locationName = "Madrid, Comunidad de Madrid, España", latitude = 40.4, longitude = -3.7,
                 calendars = listOf(CalendarSource("Personal", "https://x/a.ics", "#4FC3F7"), CalendarSource("Trabajo", "https://x/b.ics", "#FF8A65")),
                 userName = "Alfonso", clockStyle = style, accent = System.getProperty("accent") ?: "cyan",
+                modules = io.github.nrpp.gtvlife.data.ModuleId.entries.map { it.key },
+                countdowns = listOf(
+                    io.github.nrpp.gtvlife.data.Countdown("Vacaciones en Japón", LocalDate.now().plusDays(23), false),
+                    io.github.nrpp.gtvlife.data.Countdown("Cumpleaños de Marta", LocalDate.now().plusDays(5), true),
+                    io.github.nrpp.gtvlife.data.Countdown("Navidad", LocalDate.of(2026, 12, 25), true),
+                ),
+                notes = listOf(
+                    io.github.nrpp.gtvlife.data.Note("Comprar leche y pan", false),
+                    io.github.nrpp.gtvlife.data.Note("Llamar al fontanero", false),
+                    io.github.nrpp.gtvlife.data.Note("Pagar el seguro del coche", true),
+                    io.github.nrpp.gtvlife.data.Note("Reservar mesa para el sábado", false),
+                ),
             ),
         )
         val now = LocalDateTime.now().withMinute(0).withSecond(0).withNano(0)
@@ -72,6 +84,10 @@ class ScreenshotTest {
                     DayForecast(today, 61, 23.0, 12.0, 70, 3.2, LocalTime.of(8, 12), LocalTime.of(19, 31), 5.0),
                     DayForecast(today.plusDays(1), 2, 21.0, 11.0, 10, 0.0, LocalTime.of(8, 13), LocalTime.of(19, 29), 4.0),
                     DayForecast(today.plusDays(2), 95, 18.0, 10.0, 80, 9.0, LocalTime.of(8, 14), LocalTime.of(19, 28), 2.0),
+                    DayForecast(today.plusDays(3), 3, 19.0, 11.0, 20, 0.0, LocalTime.of(8, 15), LocalTime.of(19, 26), 3.0),
+                    DayForecast(today.plusDays(4), 0, 24.0, 12.0, 0, 0.0, LocalTime.of(8, 16), LocalTime.of(19, 25), 5.0),
+                    DayForecast(today.plusDays(5), 1, 25.0, 13.0, 5, 0.0, LocalTime.of(8, 17), LocalTime.of(19, 23), 5.0),
+                    DayForecast(today.plusDays(6), 45, 20.0, 12.0, 10, 0.0, LocalTime.of(8, 18), LocalTime.of(19, 22), 2.0),
                 ),
                 hourly,
             ),
@@ -101,17 +117,25 @@ class ScreenshotTest {
         )
     }
 
-    private fun shoot(cls: Class<out Activity>, name: String, settleMs: Long = 2800) {
+    private fun shoot(cls: Class<out Activity>, name: String, settleMs: Long = 2800, intent: android.content.Intent? = null, height: Int = 1080, scrollY: Int = 0) {
         androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().setInTouchMode(false)
-        val controller = Robolectric.buildActivity(cls).setup()
+        val controller = (if (intent != null) Robolectric.buildActivity(cls, intent) else Robolectric.buildActivity(cls)).setup()
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(settleMs))
         val view = controller.get().window.decorView
-        val bmp = Bitmap.createBitmap(1920, 1080, Bitmap.Config.ARGB_8888)
+        // Espera a que terminen las cargas en segundo plano (red real en los módulos que la usan)
+        repeat(12) { Thread.sleep(500); shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(200)) }
+        val bmp = Bitmap.createBitmap(1920, height, Bitmap.Config.ARGB_8888)
         view.measure(
             android.view.View.MeasureSpec.makeMeasureSpec(1920, android.view.View.MeasureSpec.EXACTLY),
-            android.view.View.MeasureSpec.makeMeasureSpec(1080, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(height, android.view.View.MeasureSpec.EXACTLY),
         )
-        view.layout(0, 0, 1920, 1080)
+        view.layout(0, 0, 1920, height)
+        if (scrollY > 0) {
+            fun find(v: android.view.View): android.widget.ScrollView? = v as? android.widget.ScrollView
+                ?: (v as? android.view.ViewGroup)?.let { g -> (0 until g.childCount).firstNotNullOfOrNull { find(g.getChildAt(it)) } }
+            find(view)?.scrollTo(0, scrollY)
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+        }
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
         view.draw(Canvas(bmp))
         dir.mkdirs()
@@ -123,4 +147,16 @@ class ScreenshotTest {
     @Test fun calendar() = shoot(CalendarActivity::class.java, "3-calendario")
     @Test fun weather() = shoot(WeatherActivity::class.java, "4-tiempo")
     @Test fun setup() = shoot(SetupActivity::class.java, "5-ajustes")
+    @Test fun mainFull() {
+        shoot(MainActivity::class.java, "1-menu-modulos-a", scrollY = 700)
+        shoot(MainActivity::class.java, "1-menu-modulos-b", scrollY = 1600)
+    }
+
+    @Test fun modules() {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val only = System.getProperty("module")
+        io.github.nrpp.gtvlife.data.ModuleId.entries.filter { only == null || it.key == only }.forEachIndexed { i, id ->
+            shoot(io.github.nrpp.gtvlife.ui.ModuleActivity::class.java, "m%02d-%s".format(i + 1, id.key), intent = io.github.nrpp.gtvlife.ui.ModuleActivity.intent(ctx, id))
+        }
+    }
 }

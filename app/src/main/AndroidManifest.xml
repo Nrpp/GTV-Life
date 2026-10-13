@@ -34,6 +34,7 @@
         <activity android:name=".ui.CalendarActivity" android:screenOrientation="landscape" />
         <activity android:name=".ui.WeatherActivity" android:screenOrientation="landscape" />
         <activity android:name=".ui.SetupActivity" android:screenOrientation="landscape" />
+        <activity android:name=".ui.ModuleActivity" android:screenOrientation="landscape" />
 
         <receiver
             android:name=".update.InstallReceiver"

@@ -40,8 +40,21 @@ data class AppConfig(
     val accent: String = "cyan",
     val clockStyle: String = "digital",
     val autoClockMinutes: Int = 0,
+    val modules: List<String> = ModuleId.DEFAULT_ENABLED,
+    val worldClocks: List<String> = ModuleDefaults.WORLD_CLOCKS,
+    val countdowns: List<Countdown> = emptyList(),
+    val newsFeeds: List<String> = ModuleDefaults.NEWS_FEEDS,
+    val cryptoCoins: List<String> = ModuleDefaults.CRYPTO,
+    val currencies: List<String> = ModuleDefaults.CURRENCIES,
+    val notes: List<Note> = emptyList(),
+    val electricityZone: String = "PCB",
 ) {
     val hasLocation get() = latitude != null && longitude != null
+
+    fun isEnabled(m: ModuleId) = m.key in modules
+
+    /** Módulos extra activados, en el orden del catálogo. */
+    val enabledModules get() = ModuleId.entries.filter(::isEnabled)
 
     fun toJson(): JSONObject = JSONObject()
         .put("locationName", locationName)
@@ -62,6 +75,14 @@ data class AppConfig(
         .put("accent", accent)
         .put("clockStyle", clockStyle)
         .put("autoClockMinutes", autoClockMinutes)
+        .put("modules", jsonArray(modules))
+        .put("worldClocks", jsonArray(worldClocks))
+        .put("countdowns", jsonArray(countdowns.map { it.toJson() }))
+        .put("newsFeeds", jsonArray(newsFeeds))
+        .put("cryptoCoins", jsonArray(cryptoCoins))
+        .put("currencies", jsonArray(currencies))
+        .put("notes", jsonArray(notes.map { it.toJson() }))
+        .put("electricityZone", electricityZone)
 
     companion object {
         /** Construye una configuración a partir de JSON, validando y saneando cada campo. */
@@ -91,6 +112,14 @@ data class AppConfig(
                 accent = o.optString("accent").takeIf { it in ACCENTS } ?: d.accent,
                 clockStyle = o.optString("clockStyle").takeIf { it in CLOCK_STYLES } ?: d.clockStyle,
                 autoClockMinutes = o.optInt("autoClockMinutes", d.autoClockMinutes).coerceIn(0, 120),
+                modules = ModuleValidation.modules(o.strings("modules")),
+                worldClocks = ModuleValidation.zones(o.strings("worldClocks")),
+                countdowns = o.objects("countdowns", Countdown::fromJson)?.take(12) ?: emptyList(),
+                newsFeeds = ModuleValidation.feeds(o.strings("newsFeeds")),
+                cryptoCoins = ModuleValidation.coins(o.strings("cryptoCoins")),
+                currencies = ModuleValidation.currencies(o.strings("currencies")),
+                notes = o.objects("notes", Note::fromJson)?.take(30) ?: emptyList(),
+                electricityZone = o.optString("electricityZone").takeIf { it == "PCB" || it == "CYM" } ?: d.electricityZone,
             )
         }
 
@@ -127,10 +156,14 @@ object ConfigStore {
         return runCatching { AppConfig.fromJson(JSONObject(raw)) }.getOrDefault(AppConfig())
     }
 
-    fun save(context: Context, config: AppConfig) {
+    /**
+     * Guarda la configuración. [invalidate] = false para cambios que no afectan a los datos
+     * descargados (p. ej. marcar una tarea como hecha desde la TV), así no se recargan las cachés.
+     */
+    fun save(context: Context, config: AppConfig, invalidate: Boolean = true) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit().putString(KEY, config.toJson().toString()).apply()
-        version++
+        if (invalidate) version++
         listeners.forEach { it(config) }
     }
 

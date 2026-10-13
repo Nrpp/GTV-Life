@@ -1,7 +1,10 @@
 package io.github.nrpp.gtvlife.ui
 
+import android.app.AlertDialog
 import android.graphics.Rect
 import android.graphics.RectF
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +16,7 @@ import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import io.github.nrpp.gtvlife.data.AppConfig
 import io.github.nrpp.gtvlife.data.ConfigStore
+import io.github.nrpp.gtvlife.data.TimerState
 import io.github.nrpp.gtvlife.ui.theme.Accent
 import io.github.nrpp.gtvlife.ui.theme.Palette
 import io.github.nrpp.gtvlife.ui.widget.BackgroundView
@@ -68,6 +72,14 @@ abstract class BaseActivity : ComponentActivity() {
         onConfigLoaded()
     }
 
+    fun currentConfig(): AppConfig = config
+
+    /** Guarda la configuración desde la propia TV (p. ej. al marcar una tarea como hecha). */
+    fun saveConfig(c: AppConfig, invalidate: Boolean = true) {
+        config = c
+        ConfigStore.save(this, c, invalidate)
+    }
+
     /** Se llama en cada onStart con la configuración recién leída. */
     protected open fun onConfigLoaded() {}
 
@@ -84,6 +96,7 @@ abstract class BaseActivity : ComponentActivity() {
             }
             syncRing()
         }
+        handler.post(alarmCheck)
     }
 
     /** Elemento que debe recibir el foco al entrar en la pantalla, si no lo tiene ninguno. */
@@ -92,6 +105,56 @@ abstract class BaseActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(hideRunnable)
+        handler.removeCallbacks(alarmCheck)
+        // Sin descartar la alarma: si sigue sonando, la siguiente pantalla la vuelve a mostrar.
+        stopTone()
+        alarmDialog?.setOnCancelListener(null)
+        alarmDialog?.dismiss()
+        alarmDialog = null
+    }
+
+    // ---- Aviso del temporizador (en cualquier pantalla) ----
+
+    private var alarmDialog: AlertDialog? = null
+    private var tone: ToneGenerator? = null
+    private var alarmStartedAt = 0L
+
+    private val alarmCheck = object : Runnable {
+        override fun run() {
+            TimerState.checkFinished()
+            if (TimerState.ringing && alarmDialog == null) showAlarm()
+            tone?.let {
+                // Pitido cada ~1,5 s durante un minuto como máximo
+                if (SystemClock.uptimeMillis() - alarmStartedAt < 60_000) it.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 600)
+                else stopTone()
+            }
+            handler.postDelayed(this, if (tone != null) 1500 else 1000)
+        }
+    }
+
+    private fun showAlarm() {
+        alarmStartedAt = SystemClock.uptimeMillis()
+        tone = runCatching { ToneGenerator(AudioManager.STREAM_ALARM, 90) }.getOrNull()
+        alarmDialog = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            .setTitle("⏰  ¡Tiempo!")
+            .setMessage("El temporizador ha llegado a cero.")
+            .setPositiveButton("Detener") { _, _ -> stopAlarm() }
+            .setOnCancelListener { stopAlarm() }
+            .show()
+    }
+
+    private fun stopTone() {
+        tone?.release()
+        tone = null
+    }
+
+    private fun stopAlarm() {
+        stopTone()
+        if (alarmDialog != null) {
+            TimerState.dismiss()
+            alarmDialog?.dismiss()
+            alarmDialog = null
+        }
     }
 
     fun setScreen(content: View) {

@@ -8,7 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object Http {
-    private const val USER_AGENT = "GTV-Life/${BuildConfig.VERSION_NAME} (Android TV)"
+    private const val USER_AGENT = "GTV-Life/${BuildConfig.VERSION_NAME} (Android TV; https://github.com/${BuildConfig.UPDATE_REPO})"
 
     /** Abre una conexión siguiendo redirecciones (incluidas http -> https, que Java no sigue sola). */
     private fun open(url: String, headers: Map<String, String>): HttpURLConnection {

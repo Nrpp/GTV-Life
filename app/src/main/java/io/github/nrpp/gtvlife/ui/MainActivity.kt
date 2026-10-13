@@ -16,6 +16,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import io.github.nrpp.gtvlife.BuildConfig
 import io.github.nrpp.gtvlife.data.CalendarRepository
+import io.github.nrpp.gtvlife.data.ModuleId
+import io.github.nrpp.gtvlife.ui.modules.Modules
 import io.github.nrpp.gtvlife.data.CalendarResult
 import io.github.nrpp.gtvlife.data.ConfigStore
 import io.github.nrpp.gtvlife.data.Weather
@@ -64,6 +66,15 @@ class MainActivity : BaseActivity() {
     private lateinit var wChart: TempChartView
 
     private lateinit var updateStatus: TextView
+    private lateinit var coreRow: LinearLayout
+    private lateinit var modulesLabel: TextView
+    private lateinit var modulesGrid: LinearLayout
+    private lateinit var moreHint: TextView
+    private lateinit var scroll: android.widget.ScrollView
+
+    /** Contenedor del contenido de cada tarjeta de módulo, para refrescarlo sin reconstruir la cuadrícula. */
+    private val tiles = LinkedHashMap<ModuleId, FrameLayout>()
+    private var builtModules: List<ModuleId> = emptyList()
     private var online: Boolean? = null
 
     private val updates = UpdateFlow(this) { state, msg ->
@@ -95,6 +106,7 @@ class MainActivity : BaseActivity() {
                 launch {
                     while (true) {
                         renderClock()
+                        tickLiveModules()
                         delay(1000L - System.currentTimeMillis() % 1000L)
                     }
                 }
@@ -133,7 +145,7 @@ class MainActivity : BaseActivity() {
     // ---- Construcción de la interfaz ----
 
     private fun buildMain(): View {
-        val root = column().apply { setPadding(dp(52), dp(30), dp(52), dp(24)) }
+        val root = column().apply { setPadding(0, dp(30), 0, dp(24)) }
 
         // Cabecera
         val header = row()
@@ -153,14 +165,28 @@ class MainActivity : BaseActivity() {
         right.addView(headerTime)
         right.addView(status, lp(WRAP, WRAP).margins(t = dp(6)))
         header.addView(right)
-        root.addView(header)
+        root.addView(header, lp(MATCH, WRAP).margins(l = dp(52), r = dp(52)))
 
-        // Tarjetas
-        val cards = row(Gravity.TOP)
-        cardClock = card().also { cards.addView(it, lp(0, MATCH, 1f).margins(r = dp(22))) }
-        cardCalendar = card().also { cards.addView(it, lp(0, MATCH, 1.25f).margins(r = dp(22))) }
-        cardWeather = card().also { cards.addView(it, lp(0, MATCH, 1.05f)) }
-        root.addView(cards, lp(MATCH, 0, 1f).margins(t = dp(24)))
+        // Zona desplazable: tarjetas principales + cuadrícula de módulos
+        val scrollContent = column().apply { setPadding(dp(52), dp(16), dp(52), dp(16)) }
+        coreRow = row(Gravity.TOP)
+        cardClock = card().also { coreRow.addView(it, lp(0, MATCH, 1f).margins(r = dp(22))) }
+        cardCalendar = card().also { coreRow.addView(it, lp(0, MATCH, 1.25f).margins(r = dp(22))) }
+        cardWeather = card().also { coreRow.addView(it, lp(0, MATCH, 1.05f)) }
+        scrollContent.addView(coreRow, lp(MATCH, dp(326)))
+        modulesLabel = label("Módulos")
+        scrollContent.addView(modulesLabel, lp(WRAP, WRAP).margins(t = dp(26), b = dp(14)))
+        modulesGrid = column()
+        scrollContent.addView(modulesGrid, lp(MATCH, WRAP))
+        scroll = android.widget.ScrollView(this).apply {
+            isFocusable = false
+            isVerticalScrollBarEnabled = false
+            isVerticalFadingEdgeEnabled = true
+            setFadingEdgeLength(dp(24))
+            addView(scrollContent, FrameLayout.LayoutParams(MATCH, WRAP))
+            setOnScrollChangeListener { _, _, y, _, _ -> moreHint.animate().alpha(if (y < dp(40) && builtModules.isNotEmpty()) 1f else 0f).setDuration(200).start() }
+        }
+        root.addView(scroll, lp(MATCH, 0, 1f).margins(t = dp(8)))
 
         buildClockCard()
         buildCalendarCard()
@@ -183,8 +209,10 @@ class MainActivity : BaseActivity() {
         footer.addView(settingsButton)
         updateStatus = text("", 15f, Palette.TEXT_DIM, Palette.medium(this))
         footer.addView(updateStatus, lp(0, WRAP, 1f).margins(l = dp(22)))
+        moreHint = text("", 12f, Palette.primary, Palette.display(this), 0.18f)
+        footer.addView(moreHint, lp(WRAP, WRAP).margins(r = dp(28)))
         footer.addView(text("GTV LIFE  v${BuildConfig.VERSION_NAME}", 11f, Palette.TEXT_FAINT, Palette.display(this), 0.2f))
-        root.addView(footer, lp(MATCH, WRAP).margins(t = dp(18)))
+        root.addView(footer, lp(MATCH, WRAP).margins(l = dp(52), r = dp(52), t = dp(10)))
         return root
     }
 
@@ -256,8 +284,79 @@ class MainActivity : BaseActivity() {
             (v.layoutParams as LinearLayout.LayoutParams).marginEnd = if (i == visible.lastIndex) 0 else dp(22)
             v.requestLayout()
         }
+        coreRow.visibility = if (visible.isEmpty()) View.GONE else View.VISIBLE
+        buildModuleGrid()
         val focused = currentFocus
-        if (focused == null || focused.visibility != View.VISIBLE) (visible.firstOrNull() ?: settingsButton).requestFocus()
+        if (focused == null || focused.visibility != View.VISIBLE || !focused.isAttachedToWindow) {
+            (visible.firstOrNull() ?: tiles.values.firstOrNull()?.parent as? View ?: settingsButton).requestFocus()
+        }
+    }
+
+    // ---- Módulos extra ----
+
+    private fun buildModuleGrid() {
+        val enabled = config.enabledModules
+        modulesLabel.visibility = if (enabled.isEmpty()) View.GONE else View.VISIBLE
+        moreHint.text = if (enabled.isEmpty()) "" else "▼  ${enabled.size} MÓDULO${if (enabled.size == 1) "" else "S"} MÁS"
+        if (enabled == builtModules) return
+        builtModules = enabled
+        modulesGrid.removeAllViews()
+        tiles.clear()
+        val perRow = 4
+        enabled.chunked(perRow).forEachIndexed { r, chunk ->
+            val row = row(Gravity.TOP)
+            chunk.forEachIndexed { i, id ->
+                val content = FrameLayout(this)
+                val tile = column().apply {
+                    background = HudPanelDrawable(resources.displayMetrics.density, 14f)
+                    setPadding(dp(18), dp(14), dp(18), dp(14))
+                    isClickable = true
+                    hudFocus(14f, 1.04f)
+                    setOnClickListener { startActivity(ModuleActivity.intent(this@MainActivity, id)) }
+                    addView(text(id.title.uppercase(Fmt.ES), 15f, Palette.primary, Palette.bold(this@MainActivity), 0.1f).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END })
+                    addView(content, lp(MATCH, 0, 1f).margins(t = dp(10)))
+                }
+                tiles[id] = content
+                row.addView(tile, lp(0, MATCH, 1f).margins(r = if (i < perRow - 1) dp(18) else 0))
+            }
+            repeat(perRow - chunk.size) { i -> row.addView(View(this), lp(0, 0, 1f).margins(r = if (chunk.size + i < perRow - 1) dp(18) else 0)) }
+            modulesGrid.addView(row, lp(MATCH, dp(206)).margins(t = if (r == 0) 0 else dp(18)))
+        }
+        enabled.forEach { id ->
+            Modules[id].peek(config)?.let { renderTile(id, it) }
+                ?: tiles[id]?.addView(text("Cargando…", 15f, Palette.TEXT_FAINT, Palette.medium(this)))
+        }
+    }
+
+    private fun renderTile(id: ModuleId, data: Any) {
+        val box = tiles[id] ?: return
+        box.removeAllViews()
+        box.tag = "ok"
+        box.addView(runCatching { Modules[id].tileAny(this, config, data) }.getOrElse { text("Error: ${it.message}", 14f, Palette.WARN) })
+    }
+
+    private fun renderTileError(id: ModuleId, e: Throwable) {
+        val box = tiles[id] ?: return
+        if (box.tag == "ok") return // mantener los últimos datos buenos
+        box.removeAllViews()
+        box.addView(text(friendlyError(e), 14f, Palette.TEXT_DIM, Palette.medium(this)).apply { maxLines = 4 })
+    }
+
+    private fun refreshModules() {
+        config.enabledModules.forEach { id ->
+            lifecycleScope.launch {
+                runCatching { Modules[id].load(this@MainActivity, config) }
+                    .onSuccess { renderTile(id, it) }
+                    .onFailure { renderTileError(id, it) }
+            }
+        }
+    }
+
+    /** Módulos "en vivo" (relojes del mundo, temporizador): se repintan cada segundo. */
+    private fun tickLiveModules() {
+        config.enabledModules.filter { Modules[it].live }.forEach { id ->
+            Modules[id].peek(config)?.let { renderTile(id, it) }
+        }
     }
 
     private fun playIntro(screen: FrameLayout) {
@@ -286,7 +385,7 @@ class MainActivity : BaseActivity() {
             screen.removeView(overlay)
         }.start()
 
-        val items = listOf(greeting, headerDate, cardClock, cardCalendar, cardWeather, settingsButton)
+        val items = listOf(greeting, headerDate, cardClock, cardCalendar, cardWeather, modulesLabel, modulesGrid, settingsButton)
         items.forEachIndexed { i, v -> v.enter(1600L + i * 90L, dpf(36f)) }
         greeting.postDelayed({ syncRing() }, 1600L + items.size * 90L + 560L)
     }
@@ -345,6 +444,7 @@ class MainActivity : BaseActivity() {
         }
         if (ok != null) online = ok
         renderStatus()
+        refreshModules()
     }
 
     private fun renderWeather(w: Weather) {
