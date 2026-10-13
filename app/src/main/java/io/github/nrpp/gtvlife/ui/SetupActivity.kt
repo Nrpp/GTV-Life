@@ -2,14 +2,17 @@ package io.github.nrpp.gtvlife.ui
 
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
+import io.github.nrpp.gtvlife.BuildConfig
 import io.github.nrpp.gtvlife.data.AppConfig
 import io.github.nrpp.gtvlife.server.ConfigServer
 import io.github.nrpp.gtvlife.ui.theme.Palette
 import io.github.nrpp.gtvlife.ui.widget.ChipDrawable
 import io.github.nrpp.gtvlife.ui.widget.QrPanelView
+import io.github.nrpp.gtvlife.update.UpdateFlow
 import io.github.nrpp.gtvlife.util.Net
 import io.github.nrpp.gtvlife.util.Qr
 import kotlinx.coroutines.delay
@@ -26,12 +29,46 @@ class SetupActivity : BaseActivity() {
     private lateinit var url: TextView
     private lateinit var status: TextView
     private lateinit var summary: LinearLayout
+    private lateinit var updateButton: TextView
+    private lateinit var back: TextView
+
+    override fun preferredFocus(): View = back
+    private lateinit var updateStatus: TextView
+
+    private val updates = UpdateFlow(this) { state, msg ->
+        updateStatus.text = msg
+        updateStatus.setTextColor(
+            when (state) {
+                UpdateFlow.State.BUSY -> Palette.primary
+                UpdateFlow.State.UP_TO_DATE -> Palette.OK
+                UpdateFlow.State.ERROR, UpdateFlow.State.READY -> Palette.WARN
+            },
+        )
+        updateButton.alpha = if (state == UpdateFlow.State.BUSY) 0.5f else 1f
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val root = row().apply { setPadding(dp(64), dp(36), dp(64), dp(36)) }
+        val root = row().apply { setPadding(dp(64), dp(30), dp(64), dp(30)) }
+        val left = column().apply { gravity = Gravity.CENTER_HORIZONTAL }
         qr = QrPanelView(this)
-        root.addView(qr, lp(dp(380), dp(380)))
+        left.addView(qr, lp(dp(340), dp(340)))
+        updateButton = chip("⟳  BUSCAR ACTUALIZACIONES", Palette.primary, 13f).apply {
+            typeface = Palette.display(this@SetupActivity)
+            letterSpacing = 0.12f
+            gravity = Gravity.CENTER
+            setPadding(dp(18), dp(12), dp(18), dp(12))
+            isClickable = true
+            hudFocus(8f, 1.04f)
+            setOnClickListener { updates.check(manual = true) }
+        }
+        left.addView(updateButton, lp(dp(310), WRAP).margins(t = dp(12)))
+        updateStatus = text("Versión instalada: v${BuildConfig.VERSION_NAME}", 15f, Palette.TEXT_DIM, Palette.semibold(this)).apply {
+            gravity = Gravity.CENTER
+            maxLines = 2
+        }
+        left.addView(updateStatus, lp(dp(330), WRAP).margins(t = dp(10)))
+        root.addView(left)
 
         val col = column()
         col.addView(label("Configuración"))
@@ -56,7 +93,7 @@ class SetupActivity : BaseActivity() {
         col.addView(summary, lp(WRAP, WRAP).margins(t = dp(16)))
         status = text("", 19f, Palette.OK, Palette.bold(this)).apply { setPadding(0, dp(12), 0, 0) }
         col.addView(status)
-        val back = chip("‹  VOLVER AL MENÚ", Palette.primary, 14f).apply {
+        back = chip("‹  VOLVER AL MENÚ", Palette.primary, 14f).apply {
             typeface = Palette.display(this@SetupActivity)
             letterSpacing = 0.15f
             setPadding(dp(22), dp(11), dp(22), dp(11))
@@ -75,6 +112,11 @@ class SetupActivity : BaseActivity() {
         fun add(s: String) = summary.addView(chip(s, Palette.secondary, 14f), lp(WRAP, WRAP).margins(r = dp(10)))
         add(if (config.hasLocation) "📍 " + config.locationName.substringBefore(",") else "📍 Sin ubicación")
         add("📅 " + when (config.calendars.size) { 0 -> "Sin calendarios"; 1 -> "1 calendario"; else -> "${config.calendars.size} calendarios" })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updates.onResume()
     }
 
     override fun onStart() {
