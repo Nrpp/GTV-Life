@@ -36,6 +36,10 @@ data class AppConfig(
     val showClock: Boolean = true,
     val showCalendar: Boolean = true,
     val showWeather: Boolean = true,
+    val userName: String = "",
+    val accent: String = "cyan",
+    val clockStyle: String = "digital",
+    val autoClockMinutes: Int = 0,
 ) {
     val hasLocation get() = latitude != null && longitude != null
 
@@ -54,6 +58,10 @@ data class AppConfig(
         .put("showClock", showClock)
         .put("showCalendar", showCalendar)
         .put("showWeather", showWeather)
+        .put("userName", userName)
+        .put("accent", accent)
+        .put("clockStyle", clockStyle)
+        .put("autoClockMinutes", autoClockMinutes)
 
     companion object {
         /** Construye una configuración a partir de JSON, validando y saneando cada campo. */
@@ -79,8 +87,15 @@ data class AppConfig(
                 showClock = o.optBoolean("showClock", d.showClock),
                 showCalendar = o.optBoolean("showCalendar", d.showCalendar),
                 showWeather = o.optBoolean("showWeather", d.showWeather),
+                userName = o.optString("userName").trim().take(30),
+                accent = o.optString("accent").takeIf { it in ACCENTS } ?: d.accent,
+                clockStyle = o.optString("clockStyle").takeIf { it in CLOCK_STYLES } ?: d.clockStyle,
+                autoClockMinutes = o.optInt("autoClockMinutes", d.autoClockMinutes).coerceIn(0, 120),
             )
         }
+
+        val ACCENTS = setOf("cyan", "magenta", "ambar", "verde", "violeta")
+        val CLOCK_STYLES = setOf("digital", "analog", "minimal")
 
         fun isValidCalendarUrl(url: String): Boolean {
             val u = url.lowercase()

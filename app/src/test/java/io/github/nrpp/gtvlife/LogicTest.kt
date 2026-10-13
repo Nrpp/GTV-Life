@@ -51,6 +51,30 @@ class LogicTest {
     }
 
     @Test
+    fun newSettingsAreValidated() {
+        val cfg = AppConfig.fromJson(JSONObject("""{"accent":"rosa","clockStyle":"analog","autoClockMinutes":999,"userName":"  Alfonso  "}"""))
+        assertEquals("cyan", cfg.accent)
+        assertEquals("analog", cfg.clockStyle)
+        assertEquals(120, cfg.autoClockMinutes)
+        assertEquals("Alfonso", cfg.userName)
+        val back = AppConfig.fromJson(cfg.toJson())
+        assertEquals(cfg, back)
+    }
+
+    @Test
+    fun relativeTimes() {
+        val now = java.time.Instant.parse("2026-10-13T10:00:00Z")
+        assertEquals("en 25 min", io.github.nrpp.gtvlife.ui.Fmt.until(now.plusSeconds(25 * 60), now))
+        assertEquals("en 1 h 20 min", io.github.nrpp.gtvlife.ui.Fmt.until(now.plusSeconds(80 * 60), now))
+        assertEquals("en 2 h", io.github.nrpp.gtvlife.ui.Fmt.until(now.plusSeconds(120 * 60), now))
+        assertEquals("quedan 45 min", io.github.nrpp.gtvlife.ui.Fmt.remaining(now.plusSeconds(45 * 60), now))
+        assertEquals("queda 1 min", io.github.nrpp.gtvlife.ui.Fmt.remaining(now.plusSeconds(90), now))
+        assertEquals("termina ya", io.github.nrpp.gtvlife.ui.Fmt.remaining(now.plusSeconds(20), now))
+        assertEquals("Buenos días, Ana", io.github.nrpp.gtvlife.ui.Fmt.greeting(LocalTime.of(9, 0), "Ana"))
+        assertEquals("Buenas noches", io.github.nrpp.gtvlife.ui.Fmt.greeting(LocalTime.of(23, 0), ""))
+    }
+
+    @Test
     fun expandsRecurringEventsAndOverrides() {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Madrid"))
         val zone = ZoneId.of("Europe/Madrid")

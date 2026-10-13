@@ -1,18 +1,39 @@
 # GTV Life
 
-App para **Google TV / Android TV** con un menú principal de módulos:
+App para **Google TV / Android TV** con un menú principal de módulos y un diseño futurista tipo HUD.
 
-- **Reloj**: reloj grande a pantalla completa. Si activas la opción en la configuración, **atenúa el brillo** (siempre o solo en un horario nocturno). Con el botón **OK** del mando puedes atenuar o restaurar el brillo a mano. El reloj se desplaza un poco cada minuto para no dejar marcas en la pantalla.
-- **Calendario**: los eventos de **hoy** (y de mañana en la vista detallada) de tus calendarios, leídos desde sus **direcciones secretas iCal** (Google Calendar, iCloud, Outlook…). Admite eventos recurrentes, excepciones y eventos de todo el día.
-- **Tiempo**: el tiempo de hoy en tu ubicación, **si va a llover y a qué horas**, previsión por horas y para mañana (datos de [Open‑Meteo](https://open-meteo.com), sin API key).
+![Menú principal](docs/screenshots/1-menu-cyan.jpg)
+
+| Reloj digital | Reloj analógico (acento magenta) |
+| --- | --- |
+| ![Reloj digital](docs/screenshots/2-reloj-digital.jpg) | ![Reloj analógico](docs/screenshots/2-reloj-analog.jpg) |
+| **Calendario** | **Tiempo** |
+| ![Calendario](docs/screenshots/3-calendario.jpg) | ![Tiempo](docs/screenshots/4-tiempo.jpg) |
+| **Configuración con QR** | **Web de configuración en el móvil** |
+| ![Ajustes](docs/screenshots/5-ajustes.jpg) | ![Web móvil](docs/screenshots/6-web-movil.jpg) |
+
+## Módulos
+
+- **Reloj**: reloj grande a pantalla completa en tres estilos (**digital** con barra de segundos, **analógico** con segundero continuo, **minimal**). Si activas la opción, **atenúa el brillo** (siempre o solo en un horario nocturno). Con **OK** atenúas o restauras a mano. Se desplaza un poco cada minuto para no marcar la pantalla.
+- **Calendario**: línea de tiempo de **hoy** (eventos pasados atenuados, evento en curso con barra de progreso y tiempo restante, marca de «ahora») y agenda de los **próximos 6 días**, desde las **direcciones secretas iCal** (Google Calendar, iCloud, Outlook…). Admite eventos recurrentes, excepciones y eventos de todo el día. Si falla la red, conserva los últimos datos buenos.
+- **Tiempo**: el tiempo de hoy, **si va a llover y a qué horas**, gráfica de temperatura y lluvia de 24 h, arco del sol, índice UV y previsión de los dos próximos días (datos de [Open‑Meteo](https://open-meteo.com), sin API key).
+
+## Diseño
+
+- Tipografías **Orbitron** y **Rajdhani** (licencia OFL, en `licenses/`).
+- Fondo con texturas: auroras del color de acento, suelo de rejilla en perspectiva, grano, líneas de escaneo, viñeta y partículas flotando.
+- Paneles de cristal con esquinas recortadas y bordes degradados.
+- **Cursor luminoso** que se desliza hasta el elemento seleccionado y **desaparece tras 6 s sin tocar el mando**; la primera pulsación solo lo vuelve a mostrar.
+- Iconos meteorológicos propios y animados, animación de arranque, entrada escalonada de las tarjetas y transiciones entre pantallas.
+- Saludo personalizado, indicador de conexión y de última actualización, cinco colores de acento y salvapantallas que abre el reloj tras N minutos sin usar el mando.
 
 ## Configuración con el móvil (QR)
 
-La primera vez que abres la app (o desde **⚙ Configuración**) aparece un **código QR** en la TV:
+La primera vez que abres la app (o desde **⚙ Ajustes**) aparece un **código QR** en la TV:
 
 1. Conecta el móvil a la **misma Wi‑Fi** que la TV.
 2. Escanea el QR con la cámara: se abre una página web servida por la propia TV.
-3. Busca tu ciudad, pega las direcciones iCal de tus calendarios (con el botón **Probar** compruebas que funcionan) y ajusta el reloj y los módulos.
+3. Escribe tu nombre, busca tu ciudad, pega las direcciones iCal (con **Probar** compruebas que funcionan), elige color, estilo de reloj, atenuación y salvapantallas.
 4. Pulsa **Guardar**: la TV se actualiza sola.
 
 Los datos (incluidas las direcciones secretas iCal) **solo se guardan en la TV**. El QR lleva un código aleatorio que cambia cada vez que abres la pantalla, así que nadie más de tu red puede cambiar la configuración sin ver la TV.
@@ -67,6 +88,13 @@ Proyecto Android nativo en Kotlin (minSdk 26, targetSdk 35).
 
 ```bash
 ./gradlew testDebugUnitTest assembleDebug
+```
+
+Capturas de todas las pantallas con datos de ejemplo (Robolectric, sin emulador):
+
+```bash
+./gradlew testDebugUnitTest -Pscreenshots=true                      # app/build/screenshots/
+./gradlew testDebugUnitTest -Pscreenshots=true -PclockStyle=analog -Paccent=magenta
 ```
 
 Las compilaciones locales tienen la versión `0.0.0` y no buscan actualizaciones. El repositorio que se consulta para las actualizaciones se toma de `GITHUB_REPOSITORY` en CI (o de `-PupdateRepo=owner/repo`).

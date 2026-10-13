@@ -23,6 +23,7 @@ data class DayForecast(
     val precipSum: Double,
     val sunrise: LocalTime?,
     val sunset: LocalTime?,
+    val uvMax: Double,
 )
 
 data class Weather(
@@ -90,6 +91,16 @@ object WeatherRepository {
 
     fun peek(): Weather? = cached
 
+    /** Solo para pruebas y capturas: fija unos datos como si se acabaran de descargar. */
+    internal fun seed(w: Weather) {
+        cached = w
+        cachedAt = System.currentTimeMillis()
+        cachedVersion = ConfigStore.version
+    }
+
+    /** Momento (ms) de la última descarga correcta; 0 si nunca. */
+    val lastUpdated: Long get() = cachedAt
+
     private suspend fun fetch(config: AppConfig): Weather = withContext(Dispatchers.IO) {
         val lat = config.latitude ?: error("Ubicación no configurada")
         val lon = config.longitude ?: error("Ubicación no configurada")
@@ -97,7 +108,7 @@ object WeatherRepository {
             "?latitude=${"%.4f".format(Locale.US, lat)}&longitude=${"%.4f".format(Locale.US, lon)}" +
             "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day" +
             "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
-            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset" +
+            "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max" +
             "&timezone=auto&forecast_days=3"
         parse(JSONObject(Http.getString(url)), config.locationName)
     }
@@ -129,6 +140,7 @@ object WeatherRepository {
                     ?.let { runCatching { LocalDateTime.parse(it).toLocalTime() }.getOrNull() },
                 sunset = d.getJSONArray("sunset").optString(i).takeIf { it.isNotEmpty() }
                     ?.let { runCatching { LocalDateTime.parse(it).toLocalTime() }.getOrNull() },
+                uvMax = d.getJSONArray("uv_index_max").optDouble(i, 0.0),
             )
         }
         return Weather(
