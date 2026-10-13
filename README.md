@@ -18,6 +18,34 @@ App para **Google TV / Android TV** con un menú principal de módulos y un dise
 - **Calendario**: línea de tiempo de **hoy** (eventos pasados atenuados, evento en curso con barra de progreso y tiempo restante, marca de «ahora») y agenda de los **próximos 6 días**, desde las **direcciones secretas iCal** (Google Calendar, iCloud, Outlook…). Admite eventos recurrentes, excepciones y eventos de todo el día. Si falla la red, conserva los últimos datos buenos.
 - **Tiempo**: el tiempo de hoy, **si va a llover y a qué horas**, gráfica de temperatura y lluvia de 24 h, arco del sol, índice UV y previsión de los dos próximos días (datos de [Open‑Meteo](https://open-meteo.com), sin API key).
 
+## Módulos extra
+
+Debajo de las tarjetas principales hay una cuadrícula de **15 módulos** que se activan y desactivan desde la configuración del móvil (y algunos se configuran ahí mismo). Cada uno tiene su tarjeta en el menú y una pantalla completa al pulsar OK.
+
+| Módulo | Qué muestra | Fuente |
+| --- | --- | --- |
+| Previsión 7 días | Tiempo de la semana | Open‑Meteo |
+| Calidad del aire | Índice europeo (EAQI), PM2,5, PM10, O₃, NO₂ | Open‑Meteo / CAMS |
+| Polen | Niveles por tipo (solo Europa) | Open‑Meteo / CAMS |
+| Fase lunar | Fase, iluminación, próximas lunas | Cálculo local |
+| Relojes del mundo | Hora en las ciudades que elijas | Local |
+| Cuenta atrás | Días que faltan (con repetición anual) | Local |
+| Frase del día | Una cita distinta cada día | Local |
+| Tal día como hoy | Efemérides | Wikipedia |
+| Noticias | Titulares de tus feeds RSS | El País, RTVE, 20minutos… |
+| Criptomonedas | Precio en € y gráfica de 7 días | CoinGecko |
+| Divisas | Cambio del euro y gráfica de 30 días | BCE (Frankfurter) |
+| Notas y tareas | Lista editable desde el móvil, se marcan con OK en la TV | Local |
+| Temporizador | Temporizador y cronómetro con aviso sonoro en cualquier pantalla | Local |
+| Precio de la luz | PVPC por horas, horas más baratas | Red Eléctrica |
+| Calendario del mes | Vista mensual con tus eventos | Tus calendarios iCal |
+
+| Módulos en el menú | Precio de la luz |
+| --- | --- |
+| ![Módulos](docs/screenshots/1-menu-modulos-a.jpg) | ![Luz](docs/screenshots/m14-electricity.jpg) |
+| **Previsión 7 días** | **Calendario del mes** |
+| ![Previsión](docs/screenshots/m01-forecast.jpg) | ![Mes](docs/screenshots/m15-month.jpg) |
+
 ## Diseño
 
 - Tipografías **Orbitron** y **Rajdhani** (licencia OFL, en `licenses/`).

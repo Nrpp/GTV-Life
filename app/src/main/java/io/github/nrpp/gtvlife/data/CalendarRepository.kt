@@ -76,7 +76,7 @@ object CalendarRepository {
     /** Momento (ms) de la última descarga; 0 si nunca. */
     val lastUpdated: Long get() = cachedAt
 
-    /** Eventos desde hoy hasta dentro de una semana, de todos los calendarios configurados. */
+    /** Eventos del mes en curso y de la próxima semana, de todos los calendarios configurados. */
     suspend fun get(config: AppConfig, force: Boolean = false): CalendarResult = mutex.withLock {
         val today = LocalDate.now()
         val fresh = cached != null && cachedVersion == ConfigStore.version && cachedDay == today &&
@@ -84,8 +84,11 @@ object CalendarRepository {
         if (fresh && !force) return@withLock cached!!
 
         val zone = ZoneId.systemDefault()
-        val from = today.atStartOfDay(zone).toInstant()
-        val to = today.plusDays(DAYS_AHEAD).atStartOfDay(zone).toInstant()
+        // Desde el día 1 del mes (para el calendario mensual) hasta una semana vista o fin de mes.
+        val monthStart = today.withDayOfMonth(1)
+        val end = maxOf(today.plusDays(DAYS_AHEAD), monthStart.plusMonths(1))
+        val from = monthStart.atStartOfDay(zone).toInstant()
+        val to = end.atStartOfDay(zone).toInstant()
         val results = coroutineScope {
             config.calendars.map { src ->
                 async(Dispatchers.IO) {

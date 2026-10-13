@@ -114,6 +114,21 @@
   .help { color: var(--dim); font-size: 15px; font-weight: 400; margin: 10px 0 0; }
   .help summary { cursor: pointer; color: var(--accent); font-weight: 600; }
 
+  .mod { border-top: 1px solid rgba(255,255,255,.07); }
+  .mod:first-child { border-top: 0; }
+  .mod .switch { border-top: 0; }
+  .mod .opts { padding: 4px 0 14px 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); margin: 0 0 6px 2px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chips button { font: 600 14px Rajdhani, sans-serif; letter-spacing: .02em; text-transform: none; padding: 8px 12px; background: transparent; border-color: rgba(255,255,255,.15); color: var(--dim); }
+  .chips button.on { background: color-mix(in srgb, var(--accent) 22%, transparent); border-color: var(--accent); color: var(--text); }
+  .item { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .item input[type=text], .item input[type=url], .item input[type=date] { flex: 1; min-width: 0; }
+  .item input[type=date] { flex: 0 0 150px; width: 150px; padding: 12px 8px; color: var(--text); font: 600 16px Rajdhani, sans-serif; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); }
+  .item label.mini { display: flex; gap: 4px; align-items: center; color: var(--dim); font-size: 13px; white-space: nowrap; }
+  .item input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); }
+  .add { margin-top: 10px; }
+  .item.wrap { flex-wrap: wrap; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .item.wrap > input[type=text] { flex: 1 0 100%; }
   footer { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(4,6,12,.9); backdrop-filter: blur(10px); border-top: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
   footer .inner { max-width: 640px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
   footer .primary { flex: none; padding: 15px 30px; font-size: 13px; }
@@ -220,10 +235,16 @@
     </div></section>
 
     <section class="chamfer"><div class="in chamfer">
-      <h2 class="hud-label">Módulos del menú</h2>
+      <h2 class="hud-label">Tarjetas principales</h2>
       <label class="switch"><span>Reloj</span><input id="showClock" type="checkbox"></label>
       <label class="switch"><span>Calendario</span><input id="showCalendar" type="checkbox"></label>
       <label class="switch"><span>Tiempo</span><input id="showWeather" type="checkbox"></label>
+    </div></section>
+
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Módulos extra</h2>
+      <p class="help" style="margin-top:0">Actívalos y aparecerán en el menú de la TV, debajo de las tarjetas principales.</p>
+      <div id="mods"></div>
     </div></section>
     <div class="ver" id="ver"></div>
   </div>
@@ -281,6 +302,7 @@ function setStyle(key) {
 
 function fill() {
   checks.forEach(k => $(k).checked = !!cfg[k]);
+  fillMods();
   $('userName').value = cfg.userName || '';
   $('dimLevel').value = cfg.dimLevel;
   $('nightStart').value = cfg.nightStart;
@@ -402,6 +424,232 @@ function renderCals() {
   });
 }
 
+
+// ---- Módulos extra ----
+const MODULES = [
+  ['forecast', 'Previsión 7 días', 'Tiempo de la próxima semana para tu ubicación.'],
+  ['air', 'Calidad del aire', 'Índice europeo y contaminantes en tu zona.'],
+  ['pollen', 'Polen', 'Niveles de polen por tipo (solo Europa).'],
+  ['moon', 'Fase lunar', 'Fase de la luna y próximas lunas llena y nueva.'],
+  ['worldclocks', 'Relojes del mundo', 'La hora en otras ciudades.'],
+  ['countdown', 'Cuenta atrás', 'Días que faltan para cumpleaños, viajes, vacaciones...'],
+  ['quote', 'Frase del día', 'Una cita inspiradora distinta cada día.'],
+  ['onthisday', 'Tal día como hoy', 'Efemérides de la Wikipedia.'],
+  ['news', 'Noticias', 'Titulares de tus periódicos (RSS).'],
+  ['crypto', 'Criptomonedas', 'Precio en euros y evolución de 7 días.'],
+  ['currency', 'Divisas', 'Cambio del euro (Banco Central Europeo).'],
+  ['notes', 'Notas y tareas', 'Escríbelas aquí y márcalas como hechas desde la TV.'],
+  ['timer', 'Temporizador', 'Temporizador y cronómetro con aviso sonoro.'],
+  ['electricity', 'Precio de la luz', 'Tarifa PVPC por horas (España).'],
+  ['month', 'Calendario del mes', 'Vista mensual con tus eventos.'],
+];
+const CITIES = {
+  'Europe/Madrid': 'Madrid', 'Atlantic/Canary': 'Canarias', 'Europe/Lisbon': 'Lisboa', 'Europe/London': 'Londres',
+  'Europe/Paris': 'París', 'Europe/Berlin': 'Berlín', 'Europe/Rome': 'Roma', 'Europe/Athens': 'Atenas', 'Europe/Moscow': 'Moscú',
+  'Africa/Cairo': 'El Cairo', 'Africa/Johannesburg': 'Johannesburgo', 'Asia/Dubai': 'Dubái', 'Asia/Kolkata': 'Nueva Delhi',
+  'Asia/Bangkok': 'Bangkok', 'Asia/Shanghai': 'Pekín', 'Asia/Hong_Kong': 'Hong Kong', 'Asia/Singapore': 'Singapur',
+  'Asia/Tokyo': 'Tokio', 'Asia/Seoul': 'Seúl', 'Australia/Sydney': 'Sídney', 'Pacific/Auckland': 'Auckland',
+  'Pacific/Honolulu': 'Honolulu', 'America/Los_Angeles': 'Los Ángeles', 'America/Denver': 'Denver', 'America/Chicago': 'Chicago',
+  'America/Mexico_City': 'Ciudad de México', 'America/New_York': 'Nueva York', 'America/Bogota': 'Bogotá', 'America/Lima': 'Lima',
+  'America/Caracas': 'Caracas', 'America/Santiago': 'Santiago de Chile', 'America/Argentina/Buenos_Aires': 'Buenos Aires',
+  'America/Sao_Paulo': 'São Paulo', 'America/Montevideo': 'Montevideo', 'UTC': 'UTC',
+};
+const COINS = { bitcoin: 'Bitcoin', ethereum: 'Ethereum', solana: 'Solana', ripple: 'XRP', cardano: 'Cardano', dogecoin: 'Dogecoin',
+  binancecoin: 'BNB', polkadot: 'Polkadot', litecoin: 'Litecoin', tron: 'TRON', 'avalanche-2': 'Avalanche', chainlink: 'Chainlink' };
+const CURRENCIES = { USD: 'Dólar EE. UU.', GBP: 'Libra', CHF: 'Franco suizo', JPY: 'Yen', CNY: 'Yuan', MXN: 'Peso mexicano',
+  BRL: 'Real brasileño', CAD: 'Dólar canadiense', AUD: 'Dólar australiano', SEK: 'Corona sueca', NOK: 'Corona noruega',
+  DKK: 'Corona danesa', PLN: 'Esloti', TRY: 'Lira turca', INR: 'Rupia india', KRW: 'Won' };
+const FEEDS = {
+  'https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada': 'El País',
+  'https://api2.rtve.es/rss/temas_noticias.xml': 'RTVE',
+  'https://www.20minutos.es/rss/': '20minutos',
+  'https://e00-elmundo.uecdn.es/elmundo/rss/portada.xml': 'El Mundo',
+  'https://www.abc.es/rss/2.0/portada/': 'ABC',
+  'https://www.lavanguardia.com/rss/home.xml': 'La Vanguardia',
+  'https://www.europapress.es/rss/rss.aspx': 'Europa Press',
+  'https://e00-marca.uecdn.es/rss/portada.xml': 'Marca',
+  'https://www.xataka.com/feedburner.xml': 'Xataka',
+};
+
+let mods = {};
+
+function chipPicker(options, selected, max, onChange) {
+  const box = document.createElement('div');
+  box.className = 'chips';
+  Object.entries(options).forEach(([value, label]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.classList.toggle('on', selected.includes(value));
+    b.onclick = () => {
+      const i = selected.indexOf(value);
+      if (i >= 0) selected.splice(i, 1);
+      else if (selected.length < max) selected.push(value);
+      b.classList.toggle('on', selected.includes(value));
+      onChange && onChange();
+    };
+    box.append(b);
+  });
+  return box;
+}
+
+function listEditor(items, render, makeNew, max, addLabel) {
+  const wrap = document.createElement('div');
+  const list = document.createElement('div');
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'ghost add';
+  add.textContent = addLabel;
+  const redraw = () => {
+    list.innerHTML = '';
+    items.forEach((it, i) => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      render(row, it);
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'danger'; del.textContent = '✕'; del.title = 'Quitar';
+      del.onclick = () => { items.splice(i, 1); redraw(); };
+      row.append(del);
+      list.append(row);
+    });
+    add.disabled = items.length >= max;
+  };
+  add.onclick = () => { items.push(makeNew()); redraw(); };
+  wrap.append(list, add);
+  redraw();
+  return wrap;
+}
+
+function input(type, value, placeholder, onInput) {
+  const el = document.createElement('input');
+  el.type = type; el.value = value || ''; if (placeholder) el.placeholder = placeholder;
+  el.oninput = () => onInput(type === 'checkbox' ? el.checked : el.value);
+  if (type === 'checkbox') el.checked = !!value;
+  return el;
+}
+
+function moduleOptions(key) {
+  const box = document.createElement('div');
+  const help = (t) => { const p = document.createElement('p'); p.className = 'help'; p.style.margin = '0 0 4px'; p.textContent = t; return p; };
+  switch (key) {
+    case 'worldclocks':
+      box.append(help('Elige hasta 8 ciudades:'), chipPicker(CITIES, mods.worldClocks, 8));
+      return box;
+    case 'countdown':
+      box.append(help('Fechas importantes (marca «cada año» para cumpleaños y aniversarios):'), listEditor(mods.countdowns, (row, it) => {
+        row.classList.add('wrap');
+        row.append(input('text', it.name, 'Nombre (p. ej. Cumpleaños de Ana)', v => it.name = v), input('date', it.date, '', v => it.date = v));
+        const l = document.createElement('label'); l.className = 'mini';
+        l.append(input('checkbox', it.yearly, '', v => it.yearly = v), 'cada año');
+        row.append(l);
+      }, () => ({ name: '', date: new Date().toISOString().slice(0, 10), yearly: false }), 12, '+ Añadir fecha'));
+      return box;
+    case 'news': {
+      box.append(help('Periódicos sugeridos:'), chipPicker(FEEDS, mods.newsFeeds, 6, () => redrawCustom()));
+      const custom = document.createElement('div');
+      const redrawCustom = () => {
+        custom.innerHTML = '';
+        const others = mods.newsFeeds.filter(u => !FEEDS[u]);
+        others.forEach(u => {
+          const row = document.createElement('div'); row.className = 'item';
+          const inp = input('url', u, '', v => { const i = mods.newsFeeds.indexOf(u); if (i >= 0) mods.newsFeeds[i] = v.trim(); u = v.trim(); });
+          const del = document.createElement('button'); del.type = 'button'; del.className = 'danger'; del.textContent = '✕';
+          del.onclick = () => { mods.newsFeeds.splice(mods.newsFeeds.indexOf(u), 1); redrawCustom(); };
+          row.append(inp, del); custom.append(row);
+        });
+      };
+      const add = document.createElement('button'); add.type = 'button'; add.className = 'ghost add'; add.textContent = '+ Otro feed RSS';
+      add.onclick = () => { if (mods.newsFeeds.length < 6) { mods.newsFeeds.push('https://'); redrawCustom(); } };
+      redrawCustom();
+      box.append(custom, add);
+      return box;
+    }
+    case 'crypto':
+      box.append(help('Elige hasta 8:'), chipPicker(COINS, mods.cryptoCoins, 8));
+      return box;
+    case 'currency':
+      box.append(help('Cambio desde el euro. Elige hasta 8:'), chipPicker(CURRENCIES, mods.currencies, 8));
+      return box;
+    case 'notes':
+      box.append(help('Tus notas o lista de tareas:'), listEditor(mods.notes, (row, it) => {
+        const l = document.createElement('label'); l.className = 'mini';
+        l.append(input('checkbox', it.done, '', v => it.done = v));
+        row.append(l, input('text', it.text, 'Escribe una tarea…', v => it.text = v));
+      }, () => ({ text: '', done: false }), 30, '+ Añadir nota'));
+      return box;
+    case 'electricity': {
+      const sel = document.createElement('select');
+      [['PCB', 'Península, Baleares y Canarias'], ['CYM', 'Ceuta y Melilla']].forEach(([v, t]) => {
+        const o = document.createElement('option'); o.value = v; o.textContent = t; sel.append(o);
+      });
+      sel.value = mods.electricityZone;
+      sel.onchange = () => mods.electricityZone = sel.value;
+      box.append(help('Zona de la tarifa:'), sel);
+      return box;
+    }
+  }
+  return null;
+}
+
+function renderMods() {
+  const root = $('mods');
+  root.innerHTML = '';
+  MODULES.forEach(([key, title, desc]) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'mod';
+    const sw = document.createElement('label');
+    sw.className = 'switch';
+    const span = document.createElement('span');
+    span.textContent = title;
+    const small = document.createElement('small');
+    small.textContent = desc;
+    span.append(small);
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = mods.enabled.includes(key);
+    sw.append(span, cb);
+    wrap.append(sw);
+    const opts = moduleOptions(key);
+    if (opts) {
+      opts.className = 'opts';
+      opts.classList.toggle('hidden', !cb.checked);
+      wrap.append(opts);
+    }
+    cb.onchange = () => {
+      const i = mods.enabled.indexOf(key);
+      if (cb.checked && i < 0) mods.enabled.push(key);
+      if (!cb.checked && i >= 0) mods.enabled.splice(i, 1);
+      if (opts) opts.classList.toggle('hidden', !cb.checked);
+    };
+    root.append(wrap);
+  });
+}
+
+function fillMods() {
+  mods = {
+    enabled: [...(cfg.modules || [])],
+    worldClocks: [...(cfg.worldClocks || [])],
+    countdowns: (cfg.countdowns || []).map(c => Object.assign({}, c)),
+    newsFeeds: [...(cfg.newsFeeds || [])],
+    cryptoCoins: [...(cfg.cryptoCoins || [])],
+    currencies: [...(cfg.currencies || [])],
+    notes: (cfg.notes || []).map(n => Object.assign({}, n)),
+    electricityZone: cfg.electricityZone || 'PCB',
+  };
+  renderMods();
+}
+
+function collectMods(out) {
+  out.modules = MODULES.map(m => m[0]).filter(k => mods.enabled.includes(k));
+  out.worldClocks = mods.worldClocks;
+  out.countdowns = mods.countdowns.filter(c => c.name.trim() && c.date).map(c => ({ name: c.name.trim(), date: c.date, yearly: !!c.yearly }));
+  out.newsFeeds = mods.newsFeeds.map(u => u.trim()).filter(u => /^https?:\/\/.+\..+/i.test(u));
+  out.cryptoCoins = mods.cryptoCoins;
+  out.currencies = mods.currencies;
+  out.notes = mods.notes.filter(n => n.text.trim()).map(n => ({ text: n.text.trim(), done: !!n.done }));
+  out.electricityZone = mods.electricityZone;
+}
+
 function collect() {
   const out = {
     locationName: cfg.locationName || '',
@@ -417,6 +665,7 @@ function collect() {
   const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
   out.latitude = isNaN(lat) ? null : lat;
   out.longitude = isNaN(lon) ? null : lon;
+  collectMods(out);
   out.calendars = calendars
     .filter(c => (c.url || '').trim())
     .map((c, i) => ({ name: (c.name || '').trim() || ('Calendario ' + (i + 1)), url: c.url.trim(), color: c.color || palette[i % palette.length] }));

@@ -68,7 +68,7 @@ android {
             val screenshots = (findProperty("screenshots") as String?) ?: "false"
             if (screenshots != "true") it.exclude("**/ScreenshotTest*")
             it.systemProperty("screenshots", screenshots)
-            listOf("clockStyle", "accent").forEach { k -> (findProperty(k) as String?)?.let { v -> it.systemProperty(k, v) } }
+            listOf("clockStyle", "accent", "module").forEach { k -> (findProperty(k) as String?)?.let { v -> it.systemProperty(k, v) } }
             it.systemProperty("screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.path)
         }
     }

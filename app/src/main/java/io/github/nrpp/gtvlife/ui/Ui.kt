@@ -97,6 +97,19 @@ object Fmt {
     }
 }
 
+/** Mensaje de error comprensible para mostrar en pantalla. */
+fun friendlyError(e: Throwable): String {
+    val m = e.message ?: ""
+    return when {
+        e is java.net.UnknownHostException || e is java.net.ConnectException || e is java.net.SocketTimeoutException ->
+            "Sin conexión. Se reintentará en unos minutos."
+        m.startsWith("HTTP 429") -> "El servicio está saturado ahora mismo. Se reintentará."
+        m.startsWith("HTTP") || m.contains("(HTTP") -> "El servicio no responde ahora mismo. Se reintentará."
+        m.isNotBlank() -> m
+        else -> "No se pudieron cargar los datos"
+    }
+}
+
 /** Atenuación del brillo en el modo reloj. */
 object Dim {
     fun shouldDim(cfg: AppConfig, now: LocalTime = LocalTime.now()): Boolean {

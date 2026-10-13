@@ -62,6 +62,63 @@ class LogicTest {
     }
 
     @Test
+    fun moduleSettingsAreValidated() {
+        val cfg = AppConfig.fromJson(
+            JSONObject(
+                """{"modules":["moon","nope","news","moon"],"worldClocks":["Asia/Tokyo","Mars/Base"],
+                "cryptoCoins":["Bitcoin","bad coin!"],"currencies":["usd","EUR","XX"],
+                "newsFeeds":["ftp://x","https://a.com/rss"],"electricityZone":"ZZZ",
+                "countdowns":[{"name":"Viaje","date":"2026-12-20"},{"name":"","date":"2026-01-01"},{"name":"Mal","date":"ayer"}],
+                "notes":[{"text":"Leche","done":true},{"text":"  "}]}""",
+            ),
+        )
+        assertEquals(listOf("moon", "news"), cfg.modules)
+        assertEquals(listOf("Asia/Tokyo"), cfg.worldClocks)
+        assertEquals(listOf("bitcoin"), cfg.cryptoCoins)
+        assertEquals(listOf("USD"), cfg.currencies)
+        assertEquals(listOf("https://a.com/rss"), cfg.newsFeeds)
+        assertEquals("PCB", cfg.electricityZone)
+        assertEquals(1, cfg.countdowns.size)
+        assertEquals(listOf(io.github.nrpp.gtvlife.data.Note("Leche", true)), cfg.notes)
+        assertEquals(cfg, AppConfig.fromJson(cfg.toJson()))
+        // Sin la clave "modules" (configuraciones antiguas) se activan los módulos por defecto
+        assertEquals(io.github.nrpp.gtvlife.data.ModuleId.DEFAULT_ENABLED, AppConfig.fromJson(JSONObject("{}")).modules)
+    }
+
+    @Test
+    fun moonPhases() {
+        // Luna llena del 26 de octubre de 2026 y luna nueva del 10 de octubre de 2026
+        val full = io.github.nrpp.gtvlife.data.Moon.at(java.time.Instant.parse("2026-10-26T04:00:00Z"), java.time.ZoneOffset.UTC)
+        assertEquals("Luna llena", full.name)
+        assertTrue(full.illumination > 0.98)
+        val newMoon = io.github.nrpp.gtvlife.data.Moon.at(java.time.Instant.parse("2026-10-10T16:00:00Z"), java.time.ZoneOffset.UTC)
+        assertEquals("Luna nueva", newMoon.name)
+        assertTrue(newMoon.illumination < 0.02)
+    }
+
+    @Test
+    fun yearlyCountdownRollsOver() {
+        val today = LocalDate.of(2026, 10, 13)
+        val bday = io.github.nrpp.gtvlife.data.Countdown("Cumple", LocalDate.of(1990, 3, 1), yearly = true)
+        assertEquals(LocalDate.of(2027, 3, 1), bday.next(today))
+        val soon = io.github.nrpp.gtvlife.data.Countdown("Navidad", LocalDate.of(2000, 12, 25), yearly = true)
+        assertEquals(LocalDate.of(2026, 12, 25), soon.next(today))
+    }
+
+    @Test
+    fun timerFormatAndAdjust() {
+        val t = io.github.nrpp.gtvlife.data.TimerState
+        assertEquals("05:00", t.format(5 * 60_000))
+        assertEquals("1:02:03", t.format((3600 + 120 + 3) * 1000L))
+        t.reset()
+        val before = t.displayMs()
+        t.add(60_000)
+        assertEquals(before + 60_000, t.displayMs())
+        t.add(-60_000)
+        assertEquals(before, t.displayMs())
+    }
+
+    @Test
     fun relativeTimes() {
         val now = java.time.Instant.parse("2026-10-13T10:00:00Z")
         assertEquals("en 25 min", io.github.nrpp.gtvlife.ui.Fmt.until(now.plusSeconds(25 * 60), now))
