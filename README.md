@@ -31,6 +31,8 @@ Cada vez que se abre la app, consulta el **último lanzamiento** de este reposit
 2. Crea una etiqueta con el formato **`v1.2.3`** (la versión debe ser mayor que la anterior) y pulsa **Publish release**.
 3. El workflow [`Release APK`](.github/workflows/release.yml) compila el APK firmado y lo adjunta al lanzamiento como `GTV-Life-v1.2.3.apk` (tarda unos minutos).
 
+También puedes ir a **Actions › Release APK › Run workflow**, escribir la versión (p. ej. `1.2.3`) y el workflow compila el APK y crea el lanzamiento él solo.
+
 ### Firma de los APK (hacerlo una sola vez)
 
 Android solo instala una actualización si está firmada con **la misma clave** que la versión instalada, así que el workflow necesita una clave fija guardada en los *secrets* del repositorio:

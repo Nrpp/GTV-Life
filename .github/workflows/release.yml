@@ -1,10 +1,18 @@
 name: Release APK
 
-# Se ejecuta al publicar un lanzamiento en GitHub (Releases › Draft a new release).
-# La etiqueta debe tener el formato v1.2.3: de ahí sale la versión de la app.
+# Dos formas de publicar una versión:
+#  - Crear un lanzamiento en GitHub (Releases › Draft a new release) con etiqueta v1.2.3:
+#    este workflow compila el APK y lo adjunta.
+#  - Lanzar este workflow a mano (Actions › Release APK › Run workflow) indicando la versión:
+#    compila el APK y crea él mismo el lanzamiento.
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión a publicar (p. ej. 1.0.1)"
+        required: true
 
 permissions:
   contents: write
@@ -13,20 +21,22 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
-
-      - name: Comprobar la etiqueta
+      - name: Comprobar la versión
         id: version
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ github.event.release.tag_name || format('v{0}', inputs.version) }}
         run: |
-          if [[ ! "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::La etiqueta '$TAG' no tiene el formato v1.2.3"
+          TAG="v${TAG#v}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::La versión '$TAG' no tiene el formato v1.2.3"
             exit 1
           fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
 
       - name: Preparar la firma
         env:
@@ -52,10 +62,15 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon -PappVersion=${{ steps.version.outputs.version }}
 
-      - name: Adjuntar el APK al lanzamiento
+      - name: Publicar el APK
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "GTV-Life-$TAG.apk"
-          gh release upload "$TAG" "GTV-Life-$TAG.apk" --clobber --repo "$GITHUB_REPOSITORY"
+          APK="GTV-Life-$TAG.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$APK"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            gh release upload "$TAG" "$APK" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK" --target "$GITHUB_SHA" --title "$TAG" --generate-notes --repo "$GITHUB_REPOSITORY"
+          fi
