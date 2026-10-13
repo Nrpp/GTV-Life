@@ -1,13 +1,9 @@
 package io.github.nrpp.gtvlife.ui
 
 import android.animation.ValueAnimator
-import android.app.AlertDialog
-import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.os.SystemClock
-import android.provider.Settings
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
@@ -15,7 +11,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -31,10 +26,9 @@ import io.github.nrpp.gtvlife.ui.widget.HudPanelDrawable
 import io.github.nrpp.gtvlife.ui.widget.SecondsBarView
 import io.github.nrpp.gtvlife.ui.widget.TempChartView
 import io.github.nrpp.gtvlife.ui.widget.WeatherIconView
-import io.github.nrpp.gtvlife.update.UpdateManager
+import io.github.nrpp.gtvlife.update.UpdateFlow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -72,8 +66,10 @@ class MainActivity : BaseActivity() {
     private lateinit var updateStatus: TextView
     private var online: Boolean? = null
 
-    /** APK ya descargado que espera a que el usuario conceda el permiso de instalación. */
-    private var pendingApk: File? = null
+    private val updates = UpdateFlow(this) { state, msg ->
+        updateStatus.text = msg
+        if (state == UpdateFlow.State.UP_TO_DATE) updateStatus.postDelayed({ updateStatus.text = "" }, 4000)
+    }
 
     private val dateFmt = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Fmt.ES)
 
@@ -91,7 +87,7 @@ class MainActivity : BaseActivity() {
             } else {
                 playIntro(screen)
             }
-            checkForUpdates()
+            updates.check(manual = false)
         }
 
         lifecycleScope.launch {
@@ -131,11 +127,7 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        val apk = pendingApk
-        if (apk != null && UpdateManager.canInstall(this)) {
-            pendingApk = null
-            installUpdate(apk)
-        }
+        updates.onResume()
     }
 
     // ---- Construcción de la interfaz ----
@@ -416,68 +408,5 @@ class MainActivity : BaseActivity() {
         if (r.errors.isNotEmpty()) {
             calList.addView(text("⚠  ${r.errors.size} calendario(s) con error", 14f, Palette.WARN).apply { setPadding(0, dp(6), 0, 0) })
         }
-    }
-
-    // ---- Actualizaciones automáticas desde GitHub Releases ----
-
-    private fun checkForUpdates() {
-        // Las compilaciones locales (versión 0.0.0) no se autoactualizan.
-        if (BuildConfig.VERSION_NAME == "0.0.0") return
-        lifecycleScope.launch {
-            updateStatus.text = "Buscando actualizaciones…"
-            val release = runCatching { UpdateManager.checkLatest() }.getOrElse {
-                updateStatus.text = ""
-                return@launch
-            }
-            if (release == null) {
-                updateStatus.text = "Tienes la última versión"
-                delay(4000)
-                updateStatus.text = ""
-                return@launch
-            }
-            updateStatus.text = "Descargando la versión ${release.version}…"
-            val apk = runCatching {
-                UpdateManager.download(this@MainActivity, release) { pct ->
-                    runOnUiThread { updateStatus.text = "Descargando la versión ${release.version}… $pct%" }
-                }
-            }.getOrElse {
-                updateStatus.text = "No se pudo descargar la actualización"
-                return@launch
-            }
-            if (UpdateManager.canInstall(this@MainActivity)) installUpdate(apk) else askInstallPermission(apk)
-        }
-    }
-
-    private fun installUpdate(apk: File) {
-        lifecycleScope.launch {
-            updateStatus.text = "Instalando actualización…"
-            runCatching { UpdateManager.install(this@MainActivity, apk) }
-                .onFailure { updateStatus.text = "Error al instalar: ${it.message}" }
-        }
-    }
-
-    private fun askInstallPermission(apk: File) {
-        pendingApk = apk
-        updateStatus.text = "Actualización lista: falta el permiso para instalar"
-        AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-            .setTitle("Actualización disponible")
-            .setMessage(
-                "Para instalar actualizaciones automáticamente, permite que GTV Life instale aplicaciones " +
-                    "(«Instalar apps desconocidas»). Solo hay que hacerlo una vez.",
-            )
-            .setPositiveButton("Abrir ajustes") { _, _ ->
-                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName"))
-                try {
-                    startActivity(intent)
-                } catch (_: ActivityNotFoundException) {
-                    Toast.makeText(
-                        this,
-                        "Ve a Ajustes › Apps › Seguridad › Fuentes desconocidas y activa GTV Life",
-                        Toast.LENGTH_LONG,
-                    ).show()
-                }
-            }
-            .setNegativeButton("Ahora no", null)
-            .show()
     }
 }

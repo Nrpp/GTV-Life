@@ -44,6 +44,7 @@ Cada vez que se abre la app, consulta el **último lanzamiento** de este reposit
 
 - La primera vez Android pedirá permiso para que GTV Life **instale aplicaciones desconocidas** (la app te lleva a ese ajuste) y una confirmación de instalación.
 - A partir de ahí, en Android 12 o superior las actualizaciones pueden instalarse sin preguntar; en versiones anteriores solo hay que pulsar «Instalar».
+- También puedes forzar la comprobación desde **⚙ Ajustes › Buscar actualizaciones** (botón debajo del QR).
 - El repositorio tiene que ser **público** para que la TV pueda consultar los lanzamientos sin credenciales.
 
 ## Publicar una versión
