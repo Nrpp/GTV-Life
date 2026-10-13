@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GTV Life · Configuración</title>
+<style>
+  :root {
+    --bg: #0b0f17; --card: #161c28; --line: #283246; --text: #f2f5fa; --dim: #9aa5b8;
+    --accent: #4fc3f7; --warn: #ffb74d; --ok: #81c784; --err: #ef5350;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 120px; }
+  h1 { font-size: 24px; margin: 8px 0 4px; }
+  .sub { color: var(--dim); margin: 0 0 20px; }
+  section { background: var(--card); border-radius: 16px; padding: 18px 16px; margin-bottom: 16px; }
+  h2 { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  label { display: block; color: var(--dim); font-size: 14px; margin: 10px 0 4px; }
+  input[type=text], input[type=url], input[type=time], input[type=number] {
+    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
+    background: #0f141e; color: var(--text); font-size: 16px;
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button { font: inherit; border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer; background: #222b3d; color: var(--text); }
+  button.primary { background: var(--accent); color: #062033; font-weight: 600; }
+  button.danger { background: transparent; color: var(--err); padding: 8px 10px; }
+  button:disabled { opacity: .5; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > input { flex: 1; }
+  .results { margin-top: 8px; display: grid; gap: 6px; }
+  .results button { text-align: left; width: 100%; }
+  .results small { color: var(--dim); display: block; }
+  .chosen { margin-top: 10px; padding: 10px 12px; background: #0f141e; border-radius: 10px; border: 1px solid var(--line); }
+  .cal { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .cal .head { display: flex; gap: 8px; align-items: center; }
+  .cal .head input[type=text] { flex: 1; }
+  .cal input[type=color] { width: 44px; height: 44px; padding: 0; border: 0; background: none; }
+  .msg { font-size: 14px; margin-top: 6px; }
+  .msg.ok { color: var(--ok); } .msg.err { color: var(--err); }
+  .switch { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .switch:first-of-type { border-top: 0; }
+  .switch span small { display: block; color: var(--dim); font-size: 13px; }
+  .switch input { width: 22px; height: 22px; accent-color: var(--accent); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .help { color: var(--dim); font-size: 13px; margin: 8px 0 0; }
+  .help summary { cursor: pointer; color: var(--accent); }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: rgba(11,15,23,.94); border-top: 1px solid var(--line); }
+  footer .inner { max-width: 640px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+  footer .primary { flex: 0 0 auto; padding: 13px 28px; }
+  #saveMsg { flex: 1; font-size: 14px; color: var(--dim); }
+  .hidden { display: none; }
+  #fatal { background: #3a1d1d; color: #ffd6d6; padding: 16px; border-radius: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GTV Life</h1>
+  <p class="sub">Configura tu TV. Los cambios se aplican al pulsar «Guardar».</p>
+  <div id="fatal" class="hidden"></div>
+
+  <div id="form" class="hidden">
+    <section>
+      <h2>Ubicación (para el tiempo)</h2>
+      <div class="row">
+        <input id="q" type="text" placeholder="Busca tu ciudad o pueblo" autocomplete="off">
+        <button id="search">Buscar</button>
+      </div>
+      <div id="results" class="results"></div>
+      <div id="chosen" class="chosen">Ninguna ubicación seleccionada</div>
+      <details class="help">
+        <summary>Introducir coordenadas a mano</summary>
+        <div class="grid2">
+          <div><label for="lat">Latitud</label><input id="lat" type="number" step="any" inputmode="decimal"></div>
+          <div><label for="lon">Longitud</label><input id="lon" type="number" step="any" inputmode="decimal"></div>
+        </div>
+      </details>
+    </section>
+
+    <section>
+      <h2>Calendarios (iCal)</h2>
+      <div id="cals"></div>
+      <button id="addCal">+ Añadir calendario</button>
+      <details class="help">
+        <summary>¿Dónde encuentro la dirección secreta?</summary>
+        <p><b>Google Calendar</b> (desde un ordenador): Configuración › tu calendario › «Integrar el calendario» › «Dirección secreta en formato iCal».</p>
+        <p><b>iCloud</b>: en la app Calendario, comparte el calendario como «Calendario público» y copia el enlace (webcal://…).</p>
+        <p><b>Outlook</b>: Configuración › Calendario › Calendarios compartidos › Publicar un calendario › enlace ICS.</p>
+        <p>Estas direcciones solo se guardan en tu TV.</p>
+      </details>
+    </section>
+
+    <section>
+      <h2>Reloj</h2>
+      <label class="switch"><span>Formato 24 horas</span><input id="use24h" type="checkbox"></label>
+      <label class="switch"><span>Mostrar segundos</span><input id="showSeconds" type="checkbox"></label>
+      <label class="switch"><span>Atenuar el brillo<small>En el reloj a pantalla completa</small></span><input id="dimEnabled" type="checkbox"></label>
+      <div id="dimOpts">
+        <label for="dimLevel">Intensidad de la atenuación: <b id="dimVal"></b></label>
+        <input id="dimLevel" type="range" min="10" max="95" step="5">
+        <label class="switch"><span>Solo por la noche</span><input id="dimNightOnly" type="checkbox"></label>
+        <div id="nightOpts" class="grid2">
+          <div><label for="nightStart">Desde</label><input id="nightStart" type="time"></div>
+          <div><label for="nightEnd">Hasta</label><input id="nightEnd" type="time"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Módulos del menú principal</h2>
+      <label class="switch"><span>Reloj</span><input id="showClock" type="checkbox"></label>
+      <label class="switch"><span>Calendario</span><input id="showCalendar" type="checkbox"></label>
+      <label class="switch"><span>Tiempo</span><input id="showWeather" type="checkbox"></label>
+    </section>
+    <p class="sub" id="ver"></p>
+  </div>
+</main>
+
+<footer id="footer" class="hidden">
+  <div class="inner">
+    <span id="saveMsg"></span>
+    <button id="save" class="primary">Guardar</button>
+  </div>
+</footer>
+
+<script>
+const token = new URLSearchParams(location.search).get('t') || '';
+const $ = (id) => document.getElementById(id);
+let cfg = {};
+let calendars = [];
+
+async function api(path, opts = {}) {
+  opts.headers = Object.assign({ 'X-Token': token }, opts.headers || {});
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || ('Error ' + r.status));
+  return data;
+}
+
+function fatal(msg) {
+  $('fatal').textContent = msg;
+  $('fatal').classList.remove('hidden');
+  $('form').classList.add('hidden');
+  $('footer').classList.add('hidden');
+}
+
+const checks = ['use24h', 'showSeconds', 'dimEnabled', 'dimNightOnly', 'showClock', 'showCalendar', 'showWeather'];
+
+function fill() {
+  checks.forEach(k => $(k).checked = !!cfg[k]);
+  $('dimLevel').value = cfg.dimLevel;
+  $('nightStart').value = cfg.nightStart;
+  $('nightEnd').value = cfg.nightEnd;
+  $('lat').value = cfg.latitude ?? '';
+  $('lon').value = cfg.longitude ?? '';
+  calendars = (cfg.calendars || []).map(c => Object.assign({}, c));
+  renderChosen();
+  renderCals();
+  syncDim();
+  $('ver').textContent = 'Versión de la app en la TV: ' + (cfg.appVersion || '?');
+}
+
+function syncDim() {
+  $('dimVal').textContent = $('dimLevel').value + '%';
+  $('dimOpts').classList.toggle('hidden', !$('dimEnabled').checked);
+  $('nightOpts').classList.toggle('hidden', !$('dimNightOnly').checked);
+}
+
+function renderChosen() {
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  if (isNaN(lat) || isNaN(lon)) { $('chosen').textContent = 'Ninguna ubicación seleccionada'; return; }
+  $('chosen').innerHTML = '';
+  const b = document.createElement('b');
+  b.textContent = cfg.locationName || 'Coordenadas personalizadas';
+  const s = document.createElement('small');
+  s.style.color = 'var(--dim)';
+  s.textContent = '  (' + lat.toFixed(3) + ', ' + lon.toFixed(3) + ')';
+  $('chosen').append('📍 ', b, s);
+}
+
+async function search() {
+  const q = $('q').value.trim();
+  if (q.length < 2) return;
+  $('search').disabled = true;
+  $('results').textContent = 'Buscando…';
+  try {
+    const { results } = await api('/api/geocode?q=' + encodeURIComponent(q));
+    $('results').innerHTML = '';
+    if (!results.length) { $('results').textContent = 'Sin resultados'; return; }
+    results.forEach(r => {
+      const btn = document.createElement('button');
+      const name = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
+      btn.textContent = r.name;
+      const small = document.createElement('small');
+      small.textContent = [r.admin2, r.admin1, r.country].filter(Boolean).join(', ');
+      btn.append(small);
+      btn.onclick = () => {
+        cfg.locationName = name;
+        $('lat').value = r.latitude;
+        $('lon').value = r.longitude;
+        $('results').innerHTML = '';
+        $('q').value = '';
+        renderChosen();
+      };
+      $('results').append(btn);
+    });
+  } catch (e) {
+    $('results').textContent = e.message;
+  } finally {
+    $('search').disabled = false;
+  }
+}
+
+const palette = ['#4fc3f7', '#81c784', '#ffb74d', '#f06292', '#ba68c8', '#4db6ac', '#e57373', '#fff176'];
+
+function renderCals() {
+  const box = $('cals');
+  box.innerHTML = '';
+  if (!calendars.length) {
+    const p = document.createElement('p');
+    p.className = 'help';
+    p.textContent = 'Todavía no hay calendarios.';
+    box.append(p);
+  }
+  calendars.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'cal';
+    el.innerHTML = `
+      <div class="head">
+        <input type="color">
+        <input type="text" placeholder="Nombre (p. ej. Personal)">
+        <button class="danger" title="Quitar">✕</button>
+      </div>
+      <label>Dirección secreta iCal</label>
+      <div class="row">
+        <input type="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" autocomplete="off">
+        <button>Probar</button>
+      </div>
+      <div class="msg"></div>`;
+    const [color, name] = el.querySelectorAll('.head input');
+    const url = el.querySelector('input[type=url]');
+    const [remove, test] = [el.querySelector('.danger'), el.querySelector('.row button')];
+    const msg = el.querySelector('.msg');
+    color.value = c.color || palette[i % palette.length];
+    name.value = c.name || '';
+    url.value = c.url || '';
+    color.oninput = () => c.color = color.value;
+    name.oninput = () => c.name = name.value;
+    url.oninput = () => { c.url = url.value.trim(); msg.textContent = ''; };
+    remove.onclick = () => { calendars.splice(i, 1); renderCals(); };
+    test.onclick = async () => {
+      msg.className = 'msg'; msg.textContent = 'Probando…'; test.disabled = true;
+      try {
+        const r = await api('/api/test-calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: c.url || '' }) });
+        if (r.ok) { msg.className = 'msg ok'; msg.textContent = '✓ Funciona: ' + r.events + ' eventos encontrados'; }
+        else { msg.className = 'msg err'; msg.textContent = '✕ ' + r.error; }
+      } catch (e) { msg.className = 'msg err'; msg.textContent = '✕ ' + e.message; }
+      test.disabled = false;
+    };
+    box.append(el);
+  });
+}
+
+function collect() {
+  const out = { locationName: cfg.locationName || '' };
+  checks.forEach(k => out[k] = $(k).checked);
+  out.dimLevel = parseInt($('dimLevel').value, 10);
+  out.nightStart = $('nightStart').value || '22:00';
+  out.nightEnd = $('nightEnd').value || '07:00';
+  const lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+  out.latitude = isNaN(lat) ? null : lat;
+  out.longitude = isNaN(lon) ? null : lon;
+  out.calendars = calendars
+    .filter(c => (c.url || '').trim())
+    .map((c, i) => ({ name: (c.name || '').trim() || ('Calendario ' + (i + 1)), url: c.url.trim(), color: c.color || palette[i % palette.length] }));
+  return out;
+}
+
+async function save() {
+  const data = collect();
+  const bad = data.calendars.find(c => !/^(https?|webcal):\/\//i.test(c.url));
+  if (bad) { $('saveMsg').textContent = '✕ La dirección de «' + bad.name + '» debe empezar por https:// o webcal://'; return; }
+  $('save').disabled = true;
+  $('saveMsg').textContent = 'Guardando…';
+  try {
+    await api('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    $('saveMsg').innerHTML = '<span style="color:var(--ok)">✓ Guardado. Ya puedes mirar la TV.</span>';
+  } catch (e) {
+    $('saveMsg').innerHTML = '';
+    $('saveMsg').textContent = '✕ ' + e.message;
+  } finally {
+    $('save').disabled = false;
+  }
+}
+
+$('search').onclick = search;
+$('q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
+$('lat').oninput = $('lon').oninput = () => { cfg.locationName = ''; renderChosen(); };
+$('addCal').onclick = () => { calendars.push({ name: '', url: '', color: palette[calendars.length % palette.length] }); renderCals(); };
+['dimEnabled', 'dimNightOnly', 'dimLevel'].forEach(id => $(id).addEventListener('input', syncDim));
+$('save').onclick = save;
+
+(async () => {
+  if (!token) return fatal('Falta el código de acceso. Escanea el QR que aparece en la TV.');
+  try {
+    cfg = await api('/api/config');
+    fill();
+    $('form').classList.remove('hidden');
+    $('footer').classList.remove('hidden');
+  } catch (e) {
+    fatal(e.message);
+  }
+})();
+</script>
+</body>
+</html>
