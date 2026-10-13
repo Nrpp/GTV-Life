@@ -3,6 +3,7 @@ package io.github.nrpp.gtvlife.server
 import android.content.Context
 import fi.iki.elonen.NanoHTTPD
 import io.github.nrpp.gtvlife.BuildConfig
+import io.github.nrpp.gtvlife.R
 import io.github.nrpp.gtvlife.data.AppConfig
 import io.github.nrpp.gtvlife.data.CalendarRepository
 import io.github.nrpp.gtvlife.data.ConfigStore
@@ -40,6 +41,11 @@ class ConfigServer(
         if (path == "/" || path == "/index.html") {
             val html = context.assets.open("config.html").use { it.readBytes().toString(Charsets.UTF_8) }
             return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", html).noCache()
+        }
+        FONTS[path]?.let { res ->
+            val bytes = context.resources.openRawResource(res).use { it.readBytes() }
+            return newFixedLengthResponse(Response.Status.OK, "font/ttf", java.io.ByteArrayInputStream(bytes), bytes.size.toLong())
+                .apply { addHeader("Cache-Control", "max-age=86400") }
         }
         if (!path.startsWith("/api/")) {
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "No encontrado")
@@ -108,6 +114,14 @@ class ConfigServer(
     private fun Response.noCache() = apply { addHeader("Cache-Control", "no-store") }
 
     companion object {
+        /** Las mismas fuentes que usa la TV, para que la web del móvil tenga el mismo aspecto. */
+        private val FONTS = mapOf(
+            "/fonts/orbitron.ttf" to R.font.orbitron,
+            "/fonts/rajdhani-regular.ttf" to R.font.rajdhani_regular,
+            "/fonts/rajdhani-semibold.ttf" to R.font.rajdhani_semibold,
+            "/fonts/rajdhani-bold.ttf" to R.font.rajdhani_bold,
+        )
+
         /** Arranca el servidor en el primer puerto libre a partir de 8080. */
         fun start(context: Context, onSaved: (AppConfig) -> Unit): ConfigServer? {
             for (port in 8080..8090) {

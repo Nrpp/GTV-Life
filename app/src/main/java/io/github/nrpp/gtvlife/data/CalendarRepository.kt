@@ -31,6 +31,14 @@ data class CalendarResult(
     val events: List<CalEvent>,
     val errors: List<String>,
 ) {
+    /** Evento con hora que está ocurriendo ahora mismo. */
+    fun current(now: Instant = Instant.now()): CalEvent? =
+        events.filter { !it.allDay && it.start <= now && it.end > now }.minByOrNull { it.end }
+
+    /** Siguiente evento con hora que aún no ha empezado. */
+    fun next(now: Instant = Instant.now()): CalEvent? =
+        events.filter { !it.allDay && it.start > now }.minByOrNull { it.start }
+
     fun on(day: LocalDate, zone: ZoneId = ZoneId.systemDefault()): List<CalEvent> {
         val from = day.atStartOfDay(zone).toInstant()
         val to = day.plusDays(1).atStartOfDay(zone).toInstant()
@@ -52,7 +60,21 @@ object CalendarRepository {
     private var cachedVersion = -1
     private var cachedDay: LocalDate? = null
 
+    /** Últimos eventos descargados bien de cada calendario (por URL), para no perderlos si falla la red. */
+    private val lastGood = HashMap<String, List<CalEvent>>()
+
     fun peek(): CalendarResult? = cached
+
+    /** Solo para pruebas y capturas: fija unos datos como si se acabaran de descargar. */
+    internal fun seed(r: CalendarResult) {
+        cached = r
+        cachedAt = System.currentTimeMillis()
+        cachedVersion = ConfigStore.version
+        cachedDay = LocalDate.now()
+    }
+
+    /** Momento (ms) de la última descarga; 0 si nunca. */
+    val lastUpdated: Long get() = cachedAt
 
     /** Eventos desde hoy hasta dentro de una semana, de todos los calendarios configurados. */
     suspend fun get(config: AppConfig, force: Boolean = false): CalendarResult = mutex.withLock {
@@ -67,11 +89,14 @@ object CalendarRepository {
         val results = coroutineScope {
             config.calendars.map { src ->
                 async(Dispatchers.IO) {
-                    runCatching { fetchEvents(src, from, to) }
-                        .fold({ it to null }, { emptyList<CalEvent>() to "${src.name.ifEmpty { "Calendario" }}: ${it.message ?: it.javaClass.simpleName}" })
+                    runCatching { fetchEvents(src, from, to) }.fold(
+                        { it to null },
+                        { (lastGood[src.url] ?: emptyList()) to "${src.name.ifEmpty { "Calendario" }}: ${it.message ?: it.javaClass.simpleName}" },
+                    )
                 }
             }.awaitAll()
         }
+        config.calendars.zip(results).forEach { (src, r) -> if (r.second == null) lastGood[src.url] = r.first }
         val result = CalendarResult(results.flatMap { it.first }, results.mapNotNull { it.second })
         cached = result
         cachedAt = System.currentTimeMillis()

@@ -62,6 +62,15 @@ android {
 
     testOptions {
         unitTests.isReturnDefaultValues = true
+        unitTests.isIncludeAndroidResources = true
+        // Capturas de pantalla con Robolectric: ./gradlew testDebugUnitTest -Pscreenshots=true
+        unitTests.all {
+            val screenshots = (findProperty("screenshots") as String?) ?: "false"
+            if (screenshots != "true") it.exclude("**/ScreenshotTest*")
+            it.systemProperty("screenshots", screenshots)
+            listOf("clockStyle", "accent").forEach { k -> (findProperty(k) as String?)?.let { v -> it.systemProperty(k, v) } }
+            it.systemProperty("screenshotDir", layout.buildDirectory.dir("screenshots").get().asFile.path)
+        }
     }
 
     packaging {
@@ -81,4 +90,6 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core:1.6.1")
 }

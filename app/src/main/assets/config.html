@@ -2,67 +2,149 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
 <title>GTV Life · Configuración</title>
 <style>
+  @font-face { font-family: Orbitron; src: url(/fonts/orbitron.ttf) format("truetype"); font-weight: 400 900; font-display: swap; }
+  @font-face { font-family: Rajdhani; src: url(/fonts/rajdhani-regular.ttf) format("truetype"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: Rajdhani; src: url(/fonts/rajdhani-semibold.ttf) format("truetype"); font-weight: 600; font-display: swap; }
+  @font-face { font-family: Rajdhani; src: url(/fonts/rajdhani-bold.ttf) format("truetype"); font-weight: 700; font-display: swap; }
+
   :root {
-    --bg: #0b0f17; --card: #161c28; --line: #283246; --text: #f2f5fa; --dim: #9aa5b8;
-    --accent: #4fc3f7; --warn: #ffb74d; --ok: #81c784; --err: #ef5350;
+    --accent: #00e5ff; --accent2: #7c4dff;
+    --bg0: #04060c; --bg1: #0a1022; --text: #eaf2ff; --dim: #8c9bba; --faint: #4c5978;
+    --ok: #3dffa2; --warn: #ffb547; --err: #ff4d6d;
+    --cut: 16px;
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 120px; }
-  h1 { font-size: 24px; margin: 8px 0 4px; }
-  .sub { color: var(--dim); margin: 0 0 20px; }
-  section { background: var(--card); border-radius: 16px; padding: 18px 16px; margin-bottom: 16px; }
-  h2 { font-size: 15px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
-  label { display: block; color: var(--dim); font-size: 14px; margin: 10px 0 4px; }
-  input[type=text], input[type=url], input[type=time], input[type=number] {
-    width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line);
-    background: #0f141e; color: var(--text); font-size: 16px;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--bg0); }
+  body {
+    margin: 0; color: var(--text); font: 600 17px/1.4 Rajdhani, system-ui, sans-serif; min-height: 100vh;
+    background:
+      radial-gradient(60vw 60vw at 0% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      radial-gradient(70vw 70vw at 110% 110%, color-mix(in srgb, var(--accent2) 22%, transparent), transparent 70%),
+      linear-gradient(var(--bg0), var(--bg1) 55%, var(--bg0));
+    background-attachment: fixed;
   }
-  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
-  button { font: inherit; border: 0; border-radius: 10px; padding: 11px 16px; cursor: pointer; background: #222b3d; color: var(--text); }
-  button.primary { background: var(--accent); color: #062033; font-weight: 600; }
-  button.danger { background: transparent; color: var(--err); padding: 8px 10px; }
+  body::before { /* rejilla + líneas de escaneo */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 4px),
+      linear-gradient(color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(90deg, color-mix(in srgb, var(--accent) 7%, transparent) 1px, transparent 1px) 0 0 / 32px 32px;
+    mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+  }
+  main { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 22px 16px 130px; }
+
+  .hud-label { font: 500 11px Orbitron, sans-serif; letter-spacing: .25em; color: var(--accent); text-transform: uppercase; }
+  .hud-label::before { content: "// "; }
+  h1 { font: 700 30px Orbitron, sans-serif; letter-spacing: .12em; margin: 10px 0 2px; }
+  h1 span { color: var(--accent); text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .sub { color: var(--dim); margin: 0 0 22px; font-weight: 400; }
+
+  .chamfer { clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+  section {
+    --cut: 18px; margin-bottom: 16px; padding: 1px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 75%, transparent), rgba(255,255,255,.07) 45%, color-mix(in srgb, var(--accent2) 55%, transparent));
+  }
+  section > .in {
+    padding: 18px 16px 16px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, #0a0f1d), #0a0f1d 45%, #080c18);
+  }
+  section h2 { margin: 0 0 14px; }
+
+  label.f { display: block; color: var(--dim); font-size: 14px; font-weight: 600; margin: 12px 0 6px; letter-spacing: .03em; }
+  input[type=text], input[type=url], input[type=time], input[type=number], select {
+    width: 100%; padding: 12px 14px; color: var(--text); font: 600 17px Rajdhani, sans-serif;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 0; --cut: 8px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    outline: none; transition: border-color .2s, background .2s;
+  }
+  input:focus, select:focus { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--accent) 50%), linear-gradient(135deg, var(--accent) 50%, transparent 50%); background-position: calc(100% - 20px) 55%, calc(100% - 14px) 55%; background-size: 6px 6px; background-repeat: no-repeat; }
+
+  button {
+    font: 600 12px Orbitron, sans-serif; letter-spacing: .12em; text-transform: uppercase; cursor: pointer;
+    color: var(--text); border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent); padding: 12px 16px;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+    transition: background .2s, transform .1s;
+  }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--accent); color: #031018; border: 0; font-weight: 800; box-shadow: 0 0 22px var(--accent); }
+  button.ghost { background: transparent; border-color: rgba(255,255,255,.15); }
+  button.danger { background: transparent; border: 0; color: var(--err); padding: 10px; font-size: 16px; }
   button:disabled { opacity: .5; }
+
   .row { display: flex; gap: 8px; align-items: center; }
   .row > input { flex: 1; }
-  .results { margin-top: 8px; display: grid; gap: 6px; }
-  .results button { text-align: left; width: 100%; }
-  .results small { color: var(--dim); display: block; }
-  .chosen { margin-top: 10px; padding: 10px 12px; background: #0f141e; border-radius: 10px; border: 1px solid var(--line); }
-  .cal { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .results { margin-top: 10px; display: grid; gap: 6px; }
+  .results button { text-align: left; width: 100%; font: 700 17px Rajdhani, sans-serif; letter-spacing: 0; text-transform: none; }
+  .results small { display: block; color: var(--dim); font-weight: 400; font-size: 14px; }
+  .chosen { margin-top: 12px; padding: 12px 14px; border-left: 3px solid var(--accent); background: rgba(255,255,255,.03); }
+  .chosen small { color: var(--dim); font-weight: 400; }
+
+  .cal { margin-bottom: 12px; padding: 1px; --cut: 12px; background: rgba(255,255,255,.12); }
+  .cal > .in { padding: 12px; background: #0b1020; }
   .cal .head { display: flex; gap: 8px; align-items: center; }
   .cal .head input[type=text] { flex: 1; }
   .cal input[type=color] { width: 44px; height: 44px; padding: 0; border: 0; background: none; }
-  .msg { font-size: 14px; margin-top: 6px; }
+  .msg { font-size: 14px; margin-top: 6px; font-weight: 600; }
   .msg.ok { color: var(--ok); } .msg.err { color: var(--err); }
-  .switch { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+
+  .switch { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.07); cursor: pointer; }
   .switch:first-of-type { border-top: 0; }
-  .switch span small { display: block; color: var(--dim); font-size: 13px; }
-  .switch input { width: 22px; height: 22px; accent-color: var(--accent); }
+  .switch small { display: block; color: var(--dim); font-size: 14px; font-weight: 400; }
+  .switch input { appearance: none; width: 50px; height: 26px; flex: none; position: relative; cursor: pointer; background: rgba(255,255,255,.1); clip-path: polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px); transition: background .25s; }
+  .switch input::after { content: ""; position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; background: var(--dim); transition: transform .25s, background .25s; }
+  .switch input:checked { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .switch input:checked::after { transform: translateX(24px); background: var(--accent); box-shadow: 0 0 10px var(--accent); }
   input[type=range] { width: 100%; accent-color: var(--accent); }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .help { color: var(--dim); font-size: 13px; margin: 8px 0 0; }
-  .help summary { cursor: pointer; color: var(--accent); }
-  footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px; background: rgba(11,15,23,.94); border-top: 1px solid var(--line); }
+
+  .swatches { display: flex; gap: 12px; flex-wrap: wrap; }
+  .swatch { width: 52px; height: 52px; padding: 0; border: 0; background: linear-gradient(135deg, var(--c1), var(--c2)); position: relative; opacity: .45; transition: opacity .2s, transform .2s; }
+  .swatch.on { opacity: 1; transform: scale(1.1); }
+  .swatch.on::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #031018; font: 800 22px Rajdhani, sans-serif; }
+  .styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .style { padding: 10px 6px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: rgba(255,255,255,.03); border-color: rgba(255,255,255,.12); }
+  .style.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); box-shadow: inset 0 0 18px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .style svg { width: 100%; height: 54px; }
+  .help { color: var(--dim); font-size: 15px; font-weight: 400; margin: 10px 0 0; }
+  .help summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+
+  footer { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: rgba(4,6,12,.9); backdrop-filter: blur(10px); border-top: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
   footer .inner { max-width: 640px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
-  footer .primary { flex: 0 0 auto; padding: 13px 28px; }
-  #saveMsg { flex: 1; font-size: 14px; color: var(--dim); }
-  .hidden { display: none; }
-  #fatal { background: #3a1d1d; color: #ffd6d6; padding: 16px; border-radius: 12px; }
+  footer .primary { flex: none; padding: 15px 30px; font-size: 13px; }
+  #saveMsg { flex: 1; font-size: 15px; color: var(--dim); }
+  .hidden { display: none !important; }
+  #fatal { padding: 18px; border-left: 3px solid var(--err); background: rgba(255,77,109,.1); }
+  .ver { color: var(--faint); font: 500 10px Orbitron, sans-serif; letter-spacing: .2em; text-align: center; margin-top: 20px; }
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: rise .5s both; }
+    section:nth-of-type(2) { animation-delay: .05s } section:nth-of-type(3) { animation-delay: .1s }
+    section:nth-of-type(4) { animation-delay: .15s } section:nth-of-type(5) { animation-delay: .2s }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px) } }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>GTV Life</h1>
+  <div class="hud-label">Panel de control</div>
+  <h1>GTV <span>LIFE</span></h1>
   <p class="sub">Configura tu TV. Los cambios se aplican al pulsar «Guardar».</p>
   <div id="fatal" class="hidden"></div>
 
   <div id="form" class="hidden">
-    <section>
-      <h2>Ubicación (para el tiempo)</h2>
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Tú</h2>
+      <label class="f" for="userName">Tu nombre (para el saludo)</label>
+      <input id="userName" type="text" maxlength="30" placeholder="p. ej. Alfonso" autocomplete="given-name">
+    </div></section>
+
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Ubicación · el tiempo</h2>
       <div class="row">
         <input id="q" type="text" placeholder="Busca tu ciudad o pueblo" autocomplete="off">
         <button id="search">Buscar</button>
@@ -72,16 +154,16 @@
       <details class="help">
         <summary>Introducir coordenadas a mano</summary>
         <div class="grid2">
-          <div><label for="lat">Latitud</label><input id="lat" type="number" step="any" inputmode="decimal"></div>
-          <div><label for="lon">Longitud</label><input id="lon" type="number" step="any" inputmode="decimal"></div>
+          <div><label class="f" for="lat">Latitud</label><input id="lat" type="number" step="any" inputmode="decimal"></div>
+          <div><label class="f" for="lon">Longitud</label><input id="lon" type="number" step="any" inputmode="decimal"></div>
         </div>
       </details>
-    </section>
+    </div></section>
 
-    <section>
-      <h2>Calendarios (iCal)</h2>
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Calendarios · iCal</h2>
       <div id="cals"></div>
-      <button id="addCal">+ Añadir calendario</button>
+      <button id="addCal" class="ghost">+ Añadir calendario</button>
       <details class="help">
         <summary>¿Dónde encuentro la dirección secreta?</summary>
         <p><b>Google Calendar</b> (desde un ordenador): Configuración › tu calendario › «Integrar el calendario» › «Dirección secreta en formato iCal».</p>
@@ -89,31 +171,61 @@
         <p><b>Outlook</b>: Configuración › Calendario › Calendarios compartidos › Publicar un calendario › enlace ICS.</p>
         <p>Estas direcciones solo se guardan en tu TV.</p>
       </details>
-    </section>
+    </div></section>
 
-    <section>
-      <h2>Reloj</h2>
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Apariencia</h2>
+      <label class="f">Color de acento</label>
+      <div id="swatches" class="swatches"></div>
+      <label class="f">Estilo del reloj a pantalla completa</label>
+      <div class="styles" id="styles">
+        <button class="style" data-style="digital" type="button">
+          <svg viewBox="0 0 120 54"><text x="60" y="30" text-anchor="middle" font-family="Orbitron" font-size="22" fill="currentColor">20:45</text><g fill="var(--accent)"><rect x="14" y="40" width="50" height="4"/></g><rect x="66" y="40" width="40" height="4" fill="rgba(255,255,255,.2)"/></svg>
+          Digital
+        </button>
+        <button class="style" data-style="analog" type="button">
+          <svg viewBox="0 0 120 54"><circle cx="60" cy="27" r="23" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><path d="M60 4 A23 23 0 0 1 83 27" fill="none" stroke="var(--accent)" stroke-width="3"/><line x1="60" y1="27" x2="60" y2="12" stroke="currentColor" stroke-width="3"/><line x1="60" y1="27" x2="74" y2="33" stroke="currentColor" stroke-width="2"/><line x1="60" y1="27" x2="48" y2="42" stroke="var(--accent)" stroke-width="1.5"/></svg>
+          Analógico
+        </button>
+        <button class="style" data-style="minimal" type="button">
+          <svg viewBox="0 0 120 54"><text x="60" y="36" text-anchor="middle" font-family="Rajdhani" font-weight="400" font-size="32" fill="currentColor">20:45</text></svg>
+          Minimal
+        </button>
+      </div>
+    </div></section>
+
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Reloj</h2>
       <label class="switch"><span>Formato 24 horas</span><input id="use24h" type="checkbox"></label>
-      <label class="switch"><span>Mostrar segundos</span><input id="showSeconds" type="checkbox"></label>
+      <label class="switch"><span>Mostrar segundos<small>En los estilos analógico y minimal</small></span><input id="showSeconds" type="checkbox"></label>
       <label class="switch"><span>Atenuar el brillo<small>En el reloj a pantalla completa</small></span><input id="dimEnabled" type="checkbox"></label>
       <div id="dimOpts">
-        <label for="dimLevel">Intensidad de la atenuación: <b id="dimVal"></b></label>
+        <label class="f" for="dimLevel">Intensidad de la atenuación: <b id="dimVal"></b></label>
         <input id="dimLevel" type="range" min="10" max="95" step="5">
         <label class="switch"><span>Solo por la noche</span><input id="dimNightOnly" type="checkbox"></label>
         <div id="nightOpts" class="grid2">
-          <div><label for="nightStart">Desde</label><input id="nightStart" type="time"></div>
-          <div><label for="nightEnd">Hasta</label><input id="nightEnd" type="time"></div>
+          <div><label class="f" for="nightStart">Desde</label><input id="nightStart" type="time"></div>
+          <div><label class="f" for="nightEnd">Hasta</label><input id="nightEnd" type="time"></div>
         </div>
       </div>
-    </section>
+      <label class="f" for="autoClock">Salvapantallas: abrir el reloj tras…</label>
+      <select id="autoClock">
+        <option value="0">Desactivado</option>
+        <option value="2">2 minutos sin usar el mando</option>
+        <option value="5">5 minutos sin usar el mando</option>
+        <option value="10">10 minutos sin usar el mando</option>
+        <option value="15">15 minutos sin usar el mando</option>
+        <option value="30">30 minutos sin usar el mando</option>
+      </select>
+    </div></section>
 
-    <section>
-      <h2>Módulos del menú principal</h2>
+    <section class="chamfer"><div class="in chamfer">
+      <h2 class="hud-label">Módulos del menú</h2>
       <label class="switch"><span>Reloj</span><input id="showClock" type="checkbox"></label>
       <label class="switch"><span>Calendario</span><input id="showCalendar" type="checkbox"></label>
       <label class="switch"><span>Tiempo</span><input id="showWeather" type="checkbox"></label>
-    </section>
-    <p class="sub" id="ver"></p>
+    </div></section>
+    <div class="ver" id="ver"></div>
   </div>
 </main>
 
@@ -129,6 +241,12 @@ const token = new URLSearchParams(location.search).get('t') || '';
 const $ = (id) => document.getElementById(id);
 let cfg = {};
 let calendars = [];
+
+const ACCENTS = {
+  cyan: ['#00e5ff', '#7c4dff'], magenta: ['#ff2bd6', '#6a5cff'], ambar: ['#ffb300', '#ff3d6e'],
+  verde: ['#39ff88', '#00b8ff'], violeta: ['#a67cff', '#00e5ff'],
+};
+const ACCENT_NAMES = { cyan: 'Cian', magenta: 'Magenta', ambar: 'Ámbar', verde: 'Verde neón', violeta: 'Violeta' };
 
 async function api(path, opts = {}) {
   opts.headers = Object.assign({ 'X-Token': token }, opts.headers || {});
@@ -147,18 +265,37 @@ function fatal(msg) {
 
 const checks = ['use24h', 'showSeconds', 'dimEnabled', 'dimNightOnly', 'showClock', 'showCalendar', 'showWeather'];
 
+function setAccent(key) {
+  cfg.accent = ACCENTS[key] ? key : 'cyan';
+  const [a, b] = ACCENTS[cfg.accent];
+  document.documentElement.style.setProperty('--accent', a);
+  document.documentElement.style.setProperty('--accent2', b);
+  document.querySelector('meta[name=theme-color]').content = '#04060c';
+  document.querySelectorAll('.swatch').forEach(s => s.classList.toggle('on', s.dataset.key === cfg.accent));
+}
+
+function setStyle(key) {
+  cfg.clockStyle = key;
+  document.querySelectorAll('.style').forEach(s => s.classList.toggle('on', s.dataset.style === key));
+}
+
 function fill() {
   checks.forEach(k => $(k).checked = !!cfg[k]);
+  $('userName').value = cfg.userName || '';
   $('dimLevel').value = cfg.dimLevel;
   $('nightStart').value = cfg.nightStart;
   $('nightEnd').value = cfg.nightEnd;
+  $('autoClock').value = String(cfg.autoClockMinutes || 0);
+  if (![...$('autoClock').options].some(o => o.selected)) $('autoClock').value = '0';
   $('lat').value = cfg.latitude ?? '';
   $('lon').value = cfg.longitude ?? '';
   calendars = (cfg.calendars || []).map(c => Object.assign({}, c));
+  setAccent(cfg.accent);
+  setStyle(cfg.clockStyle || 'digital');
   renderChosen();
   renderCals();
   syncDim();
-  $('ver').textContent = 'Versión de la app en la TV: ' + (cfg.appVersion || '?');
+  $('ver').textContent = 'GTV LIFE · V' + (cfg.appVersion || '?');
 }
 
 function syncDim() {
@@ -174,8 +311,7 @@ function renderChosen() {
   const b = document.createElement('b');
   b.textContent = cfg.locationName || 'Coordenadas personalizadas';
   const s = document.createElement('small');
-  s.style.color = 'var(--dim)';
-  s.textContent = '  (' + lat.toFixed(3) + ', ' + lon.toFixed(3) + ')';
+  s.textContent = '   ' + lat.toFixed(3) + ', ' + lon.toFixed(3);
   $('chosen').append('📍 ', b, s);
 }
 
@@ -190,6 +326,7 @@ async function search() {
     if (!results.length) { $('results').textContent = 'Sin resultados'; return; }
     results.forEach(r => {
       const btn = document.createElement('button');
+      btn.className = 'ghost';
       const name = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
       btn.textContent = r.name;
       const small = document.createElement('small');
@@ -225,22 +362,25 @@ function renderCals() {
   }
   calendars.forEach((c, i) => {
     const el = document.createElement('div');
-    el.className = 'cal';
+    el.className = 'cal chamfer';
     el.innerHTML = `
-      <div class="head">
-        <input type="color">
-        <input type="text" placeholder="Nombre (p. ej. Personal)">
-        <button class="danger" title="Quitar">✕</button>
-      </div>
-      <label>Dirección secreta iCal</label>
-      <div class="row">
-        <input type="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" autocomplete="off">
-        <button>Probar</button>
-      </div>
-      <div class="msg"></div>`;
+      <div class="in chamfer">
+        <div class="head">
+          <input type="color" aria-label="Color">
+          <input type="text" placeholder="Nombre (p. ej. Personal)">
+          <button class="danger" title="Quitar" type="button">✕</button>
+        </div>
+        <label class="f">Dirección secreta iCal</label>
+        <div class="row">
+          <input type="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" autocomplete="off">
+          <button class="test" type="button">Probar</button>
+        </div>
+        <div class="msg"></div>
+      </div>`;
     const [color, name] = el.querySelectorAll('.head input');
     const url = el.querySelector('input[type=url]');
-    const [remove, test] = [el.querySelector('.danger'), el.querySelector('.row button')];
+    const remove = el.querySelector('.danger');
+    const test = el.querySelector('.test');
     const msg = el.querySelector('.msg');
     color.value = c.color || palette[i % palette.length];
     name.value = c.name || '';
@@ -263,7 +403,13 @@ function renderCals() {
 }
 
 function collect() {
-  const out = { locationName: cfg.locationName || '' };
+  const out = {
+    locationName: cfg.locationName || '',
+    userName: $('userName').value.trim(),
+    accent: cfg.accent || 'cyan',
+    clockStyle: cfg.clockStyle || 'digital',
+    autoClockMinutes: parseInt($('autoClock').value, 10) || 0,
+  };
   checks.forEach(k => out[k] = $(k).checked);
   out.dimLevel = parseInt($('dimLevel').value, 10);
   out.nightStart = $('nightStart').value || '22:00';
@@ -285,14 +431,27 @@ async function save() {
   $('saveMsg').textContent = 'Guardando…';
   try {
     await api('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    $('saveMsg').innerHTML = '<span style="color:var(--ok)">✓ Guardado. Ya puedes mirar la TV.</span>';
+    $('saveMsg').innerHTML = '<span style="color:var(--ok)">✓ Guardado. Mira la TV.</span>';
   } catch (e) {
-    $('saveMsg').innerHTML = '';
     $('saveMsg').textContent = '✕ ' + e.message;
   } finally {
     $('save').disabled = false;
   }
 }
+
+Object.entries(ACCENTS).forEach(([key, [a, b]]) => {
+  const s = document.createElement('button');
+  s.type = 'button';
+  s.className = 'swatch chamfer';
+  s.dataset.key = key;
+  s.title = ACCENT_NAMES[key];
+  s.setAttribute('aria-label', ACCENT_NAMES[key]);
+  s.style.setProperty('--c1', a);
+  s.style.setProperty('--c2', b);
+  s.onclick = () => setAccent(key);
+  $('swatches').append(s);
+});
+document.querySelectorAll('.style').forEach(b => b.onclick = () => setStyle(b.dataset.style));
 
 $('search').onclick = search;
 $('q').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); search(); } });
